@@ -60,7 +60,7 @@
   .type-badge.type-social { background: rgba(201,242,75,0.18); color: var(--chartreuse); }
 
   /* ---- auth screen ---- */
-  #auth-screen { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; }
+  #auth-screen { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; padding-top: calc(24px + env(safe-area-inset-top)); }
   .auth-card { background: var(--paper-raised); border: 1px solid var(--line); border-top: 4px solid var(--orange); border-radius: 4px 4px 20px 20px; padding: 28px; max-width: 380px; width: 100%; box-shadow: 0 10px 30px rgba(32,35,43,0.06); }
   .brand { font-family: var(--display); font-size: 22px; font-weight: 600; letter-spacing: .2px; line-height: 1.15; }
   .brand-sub { color: var(--ink-soft); font-size: 13px; margin-top: 6px; margin-bottom: 22px; }
@@ -69,7 +69,7 @@
   .auth-toggle a { color: var(--ink); font-weight: 600; cursor: pointer; text-decoration: underline; }
 
   /* ---- app shell ---- */
-  header.app-header { position: relative; padding: 24px 0 22px; }
+  header.app-header { position: relative; padding: calc(24px + env(safe-area-inset-top)) 0 22px; }
   header.app-header::after {
     content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 3px;
     background-image: repeating-linear-gradient(90deg, var(--orange) 0 12px, transparent 12px 20px);
