@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Run Club</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #F6F4EE;
+    --paper-raised: #FFFFFF;
+    --ink: #20232B;
+    --ink-soft: #5B5E68;
+    --line: #E1DCCF;
+    --orange: #FF5A1F;
+    --orange-deep: #D8460A;
+    --chartreuse: #C9F24B;
+    --stone: #B8B3A4;
+    --display: 'Oswald', 'Arial Narrow', sans-serif;
+    --body: 'Inter', -apple-system, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(--body); }
+  .wrap { max-width: 640px; margin: 0 auto; padding: 0 16px; }
+  .hidden { display: none !important; }
+  button { font-family: var(--body); }
+  .btn { cursor: pointer; border-radius: 999px; border: none; font-weight: 700; transition: transform .08s ease; }
+  .btn:active { transform: scale(0.96); }
+  .btn-primary { background: var(--orange); color: #fff; padding: 12px 18px; font-size: 14px; }
+  .btn-dark { background: var(--ink); color: var(--paper); padding: 12px 18px; font-size: 14px; }
+  .btn-ghost { background: transparent; color: var(--ink-soft); border: 1px solid var(--line); padding: 12px 18px; font-size: 14px; border-radius: 10px; }
+  input, textarea {
+    width: 100%; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--line);
+    background: var(--paper-raised); font-size: 14px; color: var(--ink); font-family: var(--body);
+  }
+  label.field-label { font-size: 12px; font-weight: 600; color: var(--ink-soft); display: block; margin-bottom: 5px; }
+  .field { margin-bottom: 12px; }
+
+  /* ---- auth screen ---- */
+  #auth-screen { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; }
+  .auth-card { background: var(--paper-raised); border: 1px solid var(--line); border-radius: 20px; padding: 28px; max-width: 380px; width: 100%; }
+  .brand { font-family: var(--display); font-size: 30px; font-weight: 600; letter-spacing: .5px; }
+  .brand-sub { color: var(--ink-soft); font-size: 13px; margin-top: 4px; margin-bottom: 22px; }
+  .auth-error { background: #FDECE7; border: 1px solid var(--orange-deep); color: var(--orange-deep); padding: 8px 12px; border-radius: 8px; font-size: 13px; margin-bottom: 12px; }
+  .auth-toggle { text-align: center; margin-top: 14px; font-size: 13px; color: var(--ink-soft); }
+  .auth-toggle a { color: var(--ink); font-weight: 600; cursor: pointer; text-decoration: underline; }
+
+  /* ---- app shell ---- */
+  header.app-header { padding: 24px 0 0; border-bottom: 1px solid var(--line); padding-bottom: 16px; }
+  .header-row { display: flex; align-items: center; justify-content: space-between; }
+  .avatar-btn { width: 36px; height: 36px; border-radius: 999px; background: var(--ink); color: var(--paper); border: none; display: flex; align-items: center; justify-content: center; font-family: var(--display); font-size: 13px; font-weight: 600; cursor: pointer; }
+
+  .banner { width: 100%; display: flex; align-items: center; gap: 14px; background: var(--ink); color: var(--paper); border-radius: 16px; padding: 14px 16px; border: none; cursor: pointer; text-align: left; margin-top: 14px; }
+  .banner-date { flex: 0 0 auto; width: 54px; height: 54px; border-radius: 12px; background: var(--orange); display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1; }
+  .banner-date .mon { font-family: var(--display); font-size: 10px; font-weight: 600; color: #fff; letter-spacing: .5px; }
+  .banner-date .day { font-family: var(--display); font-size: 22px; font-weight: 700; color: #fff; }
+  .banner-tag { font-size: 11px; font-weight: 600; color: var(--chartreuse); letter-spacing: .3px; }
+  .banner-title { font-size: 16px; font-weight: 700; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .banner-meta { font-size: 12.5px; color: #C7C9D1; margin-top: 3px; display: flex; flex-wrap: wrap; gap: 2px 10px; }
+
+  .tabs { display: flex; gap: 4px; background: var(--line); border-radius: 999px; padding: 4px; margin-top: 16px; }
+  .tab-btn { flex: 1; padding: 9px 0; border-radius: 999px; border: none; cursor: pointer; font-family: var(--display); font-size: 13.5px; font-weight: 600; letter-spacing: .3px; background: transparent; color: var(--ink-soft); }
+  .tab-btn.active { background: var(--ink); color: var(--paper); }
+  .tab-count { margin-left: 6px; font-size: 11px; font-weight: 700; }
+
+  main { padding: 20px 0 60px; }
+
+  /* calendar */
+  .cal-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  .cal-nav-btn { width: 32px; height: 32px; border-radius: 999px; border: 1px solid var(--line); background: var(--paper-raised); display: flex; align-items: center; justify-content: center; cursor: pointer; }
+  .cal-month { font-family: var(--display); font-size: 18px; font-weight: 600; letter-spacing: .5px; }
+  .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; }
+  .cal-weekday { text-align: center; font-size: 11px; color: var(--stone); font-weight: 600; padding: 4px 0; }
+  .cal-day { aspect-ratio: 1; border-radius: 10px; border: 1px solid var(--line); background: var(--paper-raised); display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; position: relative; }
+  .cal-day.selected { border: 2px solid var(--ink); background: var(--ink); color: var(--paper); }
+  .cal-day.other-month { opacity: .5; }
+  .cal-day .num { font-size: 13px; font-weight: 500; }
+  .cal-day .today-mark { text-decoration: underline; text-decoration-color: var(--orange); text-decoration-thickness: 2px; text-underline-offset: 3px; font-weight: 700; }
+  .cal-day .dot { margin-top: 3px; width: 5px; height: 5px; border-radius: 999px; background: var(--orange); }
+  .cal-day.selected .dot { background: var(--chartreuse); }
+
+  .day-panel { border-top: 1px solid var(--line); padding-top: 16px; margin-top: 22px; }
+  .day-panel-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  .day-panel-head .title { font-family: var(--display); font-size: 16px; font-weight: 600; }
+
+  .empty-note { color: var(--ink-soft); font-size: 14px; padding: 18px 0; }
+
+  /* run card */
+  .run-card { background: var(--paper-raised); border: 1px solid var(--line); border-radius: 14px; padding: 14px; margin-bottom: 10px; }
+  .run-card-top { display: flex; align-items: flex-start; justify-content: space-between; }
+  .run-title { font-size: 16px; font-weight: 700; }
+  .run-meta { display: flex; flex-wrap: wrap; gap: 4px 14px; margin-top: 6px; font-size: 13px; color: var(--ink-soft); }
+  .run-notes { font-size: 13px; color: var(--ink-soft); margin-top: 6px; }
+  .run-by { font-size: 11px; color: var(--stone); margin-top: 6px; }
+  .run-delete { background: none; border: none; color: var(--stone); cursor: pointer; padding: 4px; }
+  .rsvp-row { display: flex; gap: 6px; margin-top: 12px; }
+  .rsvp-btn { flex: 1; font-size: 12.5px; font-weight: 600; padding: 8px 6px; border-radius: 8px; border: 1px solid var(--line); background: var(--paper); color: var(--ink-soft); cursor: pointer; }
+  .rsvp-btn.active-going { background: var(--orange); border-color: var(--orange); color: #fff; }
+  .rsvp-btn.active-interested { background: var(--chartreuse); border-color: var(--chartreuse); color: var(--ink); }
+  .rsvp-btn.active-not { background: var(--stone); border-color: var(--stone); color: #fff; }
+  .who-row { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
+  .avatar-stack { display: flex; }
+  .avatar-chip { width: 24px; height: 24px; border-radius: 999px; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; border: 2px solid var(--paper-raised); margin-left: -8px; }
+  .avatar-chip:first-child { margin-left: 0; }
+  .who-label { font-size: 12px; color: var(--ink-soft); }
+
+  .race-date-head { font-family: var(--display); font-size: 14px; font-weight: 600; margin-bottom: 10px; display: flex; align-items: baseline; gap: 8px; }
+
+  /* modal */
+  .modal-overlay { position: fixed; inset: 0; background: rgba(32,35,43,.5); display: flex; align-items: flex-end; justify-content: center; z-index: 50; }
+  .modal-sheet { background: var(--paper); border-radius: 20px 20px 0 0; padding: 20px; width: 100%; max-width: 480px; max-height: 88vh; overflow-y: auto; }
+  .modal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+  .modal-title { font-family: var(--display); font-size: 20px; font-weight: 600; }
+  .modal-close { background: none; border: none; cursor: pointer; font-size: 20px; line-height: 1; color: var(--ink); }
+  .field-row { display: flex; gap: 12px; }
+  .field-row .field { flex: 1; }
+
+  .fab { position: fixed; bottom: 24px; right: 24px; width: 56px; height: 56px; border-radius: 999px; background: var(--orange); color: #fff; border: none; font-size: 26px; box-shadow: 0 6px 20px rgba(0,0,0,.25); cursor: pointer; }
+
+  .loading-note { color: var(--ink-soft); text-align: center; padding: 40px 0; }
+</style>
+</head>
+<body>
+
+<!-- ============ AUTH SCREEN ============ -->
+<div id="auth-screen">
+  <div class="auth-card">
+    <div class="brand">Run Club</div>
+    <div class="brand-sub">Sign in to see the group calendar</div>
+    <div id="auth-error" class="auth-error hidden"></div>
+
+    <form id="signin-form">
+      <div class="field">
+        <label class="field-label">Email</label>
+        <input type="email" id="signin-email" required autocomplete="email" />
+      </div>
+      <div class="field">
+        <label class="field-label">Password</label>
+        <input type="password" id="signin-password" required autocomplete="current-password" />
+      </div>
+      <button type="submit" class="btn btn-dark" style="width:100%;">Log in</button>
+    </form>
+
+    <form id="signup-form" class="hidden">
+      <div class="field">
+        <label class="field-label">Your name</label>
+        <input type="text" id="signup-name" required autocomplete="name" />
+      </div>
+      <div class="field">
+        <label class="field-label">Email</label>
+        <input type="email" id="signup-email" required autocomplete="email" />
+      </div>
+      <div class="field">
+        <label class="field-label">Password</label>
+        <input type="password" id="signup-password" required minlength="6" autocomplete="new-password" />
+      </div>
+      <button type="submit" class="btn btn-primary" style="width:100%;">Create account</button>
+    </form>
+
+    <div class="auth-toggle">
+      <span id="to-signup">New here? <a>Create an account</a></span>
+      <span id="to-signin" class="hidden">Already a member? <a>Log in</a></span>
+    </div>
+    <div class="auth-toggle" style="margin-top:6px;">
+      <a id="forgot-password">Forgot password?</a>
+    </div>
+  </div>
+</div>
+
+<!-- ============ APP SHELL ============ -->
+<div id="app" class="hidden">
+  <div class="wrap">
+    <header class="app-header">
+      <div class="header-row">
+        <div>
+          <div class="brand">Run Club</div>
+          <div class="brand-sub" id="signed-in-as" style="margin-bottom:0;">Group calendar</div>
+        </div>
+        <button class="avatar-btn" id="avatar-btn" title="Sign out">--</button>
+      </div>
+
+      <div id="banner-slot"></div>
+
+      <div class="tabs">
+        <button class="tab-btn" data-tab="races">Upcoming races <span class="tab-count" id="races-count"></span></button>
+        <button class="tab-btn" data-tab="calendar">Calendar</button>
+      </div>
+    </header>
+
+    <main id="main-content">
+      <div class="loading-note">Loading the calendar…</div>
+    </main>
+  </div>
+
+  <button class="fab" id="fab-add" title="Add a run">+</button>
+</div>
+
+<!-- ============ ADD RUN MODAL ============ -->
+<div id="add-modal-overlay" class="modal-overlay hidden">
+  <div class="modal-sheet">
+    <div class="modal-head">
+      <div class="modal-title">Add a run</div>
+      <button class="modal-close" id="close-add-modal">&times;</button>
+    </div>
+    <form id="add-run-form">
+      <div class="field">
+        <label class="field-label">What are we calling it?</label>
+        <input type="text" id="run-title" placeholder="Saturday long run" required />
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label class="field-label">Date</label>
+          <input type="date" id="run-date" required />
+        </div>
+        <div class="field">
+          <label class="field-label">Time</label>
+          <input type="time" id="run-time" value="07:00" />
+        </div>
+      </div>
+      <div class="field">
+        <label class="field-label">Meeting point</label>
+        <input type="text" id="run-location" placeholder="Riverside park entrance" />
+      </div>
+      <div class="field">
+        <label class="field-label">Distance (optional)</label>
+        <input type="text" id="run-distance" placeholder="10k, easy pace" />
+      </div>
+      <div class="field">
+        <label class="field-label">Notes (optional)</label>
+        <textarea id="run-notes" rows="3" placeholder="Bring water, we'll grab coffee after"></textarea>
+      </div>
+      <button type="submit" class="btn btn-dark" style="width:100%; padding:12px 0;">Add to calendar</button>
+    </form>
+  </div>
+</div>
+
+<script type="module">
+// =====================================================================
+// FIREBASE SETUP — replace with your own project's config.
+// Firebase Console → Project settings → General → "Your apps" → Web app
+// =====================================================================
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js";
+import {
+  getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword,
+  signOut, onAuthStateChanged, updateProfile, sendPasswordResetEmail
+} from "https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js";
+import {
+  getFirestore, collection, addDoc, updateDoc, deleteDoc, doc,
+  onSnapshot, query, orderBy, serverTimestamp
+} from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "REPLACE_ME",
+  authDomain: "REPLACE_ME.firebaseapp.com",
+  projectId: "REPLACE_ME",
+  storageBucket: "REPLACE_ME.appspot.com",
+  messagingSenderId: "REPLACE_ME",
+  appId: "REPLACE_ME"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+// ---------------------------------------------------------------------
+// constants / helpers
+// ---------------------------------------------------------------------
+const MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+const WEEKDAYS = ["S","M","T","W","T","F","S"];
+const STATUS = {
+  going: { label: "Going", cls: "active-going" },
+  interested: { label: "Interested", cls: "active-interested" },
+  not: { label: "Not for me", cls: "active-not" },
+};
+
+function dateKey(d) { return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; }
+function sameDay(a,b){ return a.getFullYear()===b.getFullYear() && a.getMonth()===b.getMonth() && a.getDate()===b.getDate(); }
+function initials(name){ if(!name) return "?"; const p=name.trim().split(/\s+/); return ((p[0]?.[0]||"")+(p[1]?.[0]||"")).toUpperCase() || name[0].toUpperCase(); }
+function fmtTime(t){ if(!t) return ""; const [h,m]=t.split(":").map(Number); const period=h>=12?"PM":"AM"; const h12=h%12===0?12:h%12; return `${h12}:${String(m).padStart(2,"0")} ${period}`; }
+function fmtDateLong(d){ return `${["Sun","Mon","Tue","Wed","Thu","Fri","Sat"][d.getDay()]}, ${MONTHS[d.getMonth()]} ${d.getDate()}`; }
+function daysUntilLabel(dateStr){
+  const today=new Date(); const todayMid=new Date(today.getFullYear(),today.getMonth(),today.getDate());
+  const target=new Date(dateStr+"T00:00:00"); const diff=Math.round((target-todayMid)/86400000);
+  if(diff===0) return "Today"; if(diff===1) return "Tomorrow"; if(diff>1) return `In ${diff} days`; return "Past";
+}
+function buildMonthGrid(year, month){
+  const first=new Date(year,month,1); const start=new Date(first); start.setDate(first.getDate()-first.getDay());
+  const days=[]; for(let i=0;i<42;i++){ const d=new Date(start); d.setDate(start.getDate()+i); days.push(d); } return days;
+}
+function escapeHtml(s){ return (s||"").replace(/[&<>"']/g, (c)=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+
+// ---------------------------------------------------------------------
+// state
+// ---------------------------------------------------------------------
+let currentUser = null;   // { uid, name, email }
+let runs = [];            // live from Firestore
+let activeTab = "races";
+let viewMonth = new Date(); viewMonth.setDate(1);
+let selectedDate = new Date();
+let unsubscribeRuns = null;
+
+const today = new Date();
+
+// ---------------------------------------------------------------------
+// AUTH UI
+// ---------------------------------------------------------------------
+const authScreen = document.getElementById("auth-screen");
+const appEl = document.getElementById("app");
+const authError = document.getElementById("auth-error");
+const signinForm = document.getElementById("signin-form");
+const signupForm = document.getElementById("signup-form");
+
+document.getElementById("to-signup").addEventListener("click", () => {
+  signinForm.classList.add("hidden"); signupForm.classList.remove("hidden");
+  document.getElementById("to-signup").classList.add("hidden");
+  document.getElementById("to-signin").classList.remove("hidden");
+  authError.classList.add("hidden");
+});
+document.getElementById("to-signin").addEventListener("click", () => {
+  signupForm.classList.add("hidden"); signinForm.classList.remove("hidden");
+  document.getElementById("to-signin").classList.add("hidden");
+  document.getElementById("to-signup").classList.remove("hidden");
+  authError.classList.add("hidden");
+});
+document.getElementById("forgot-password").addEventListener("click", async () => {
+  const email = document.getElementById("signin-email").value.trim();
+  if (!email) { showAuthError("Enter your email above first, then click Forgot password."); return; }
+  try {
+    await sendPasswordResetEmail(auth, email);
+    showAuthError("Password reset email sent — check your inbox.");
+  } catch (e) { showAuthError(friendlyAuthError(e)); }
+});
+
+signinForm.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const email = document.getElementById("signin-email").value.trim();
+  const password = document.getElementById("signin-password").value;
+  try {
+    await signInWithEmailAndPassword(auth, email, password);
+  } catch (err) { showAuthError(friendlyAuthError(err)); }
+});
+
+signupForm.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const name = document.getElementById("signup-name").value.trim();
+  const email = document.getElementById("signup-email").value.trim();
+  const password = document.getElementById("signup-password").value;
+  try {
+    const cred = await createUserWithEmailAndPassword(auth, email, password);
+    await updateProfile(cred.user, { displayName: name });
+  } catch (err) { showAuthError(friendlyAuthError(err)); }
+});
+
+function showAuthError(msg) { authError.textContent = msg; authError.classList.remove("hidden"); }
+function friendlyAuthError(e) {
+  const code = e?.code || "";
+  if (code.includes("email-already-in-use")) return "That email already has an account — try logging in.";
+  if (code.includes("invalid-credential") || code.includes("wrong-password") || code.includes("user-not-found")) return "Email or password didn't match.";
+  if (code.includes("weak-password")) return "Password should be at least 6 characters.";
+  if (code.includes("invalid-email")) return "That email address doesn't look right.";
+  return "Something went wrong. Try again.";
+}
+
+document.getElementById("avatar-btn").addEventListener("click", () => {
+  if (confirm("Sign out of Run Club?")) signOut(auth);
+});
+
+onAuthStateChanged(auth, (user) => {
+  if (unsubscribeRuns) { unsubscribeRuns(); unsubscribeRuns = null; }
+  if (user) {
+    currentUser = { uid: user.uid, name: user.displayName || user.email.split("@")[0], email: user.email };
+    authScreen.classList.add("hidden");
+    appEl.classList.remove("hidden");
+    document.getElementById("signed-in-as").textContent = `Signed in as ${currentUser.name}`;
+    document.getElementById("avatar-btn").textContent = initials(currentUser.name);
+    listenToRuns();
+  } else {
+    currentUser = null;
+    appEl.classList.add("hidden");
+    authScreen.classList.remove("hidden");
+    signinForm.reset(); signupForm.reset();
+  }
+});
+
+// ---------------------------------------------------------------------
+// FIRESTORE
+// ---------------------------------------------------------------------
+function listenToRuns() {
+  const q = query(collection(db, "runs"), orderBy("date"), orderBy("time"));
+  unsubscribeRuns = onSnapshot(q, (snap) => {
+    runs = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    render();
+  }, (err) => {
+    document.getElementById("main-content").innerHTML =
+      `<div class="loading-note">Couldn't load the calendar: ${escapeHtml(err.message)}</div>`;
+  });
+}
+
+async function addRun(data) {
+  await addDoc(collection(db, "runs"), {
+    title: data.title, date: data.date, time: data.time,
+    location: data.location, distance: data.distance, notes: data.notes,
+    createdBy: currentUser.uid, createdByName: currentUser.name,
+    rsvps: {}, createdAt: serverTimestamp(),
+  });
+}
+async function deleteRun(runId) { await deleteDoc(doc(db, "runs", runId)); }
+async function setRsvp(runId, status) {
+  const run = runs.find((r) => r.id === runId);
+  if (!run) return;
+  const rsvps = { ...(run.rsvps || {}) };
+  if (rsvps[currentUser.uid]?.status === status) delete rsvps[currentUser.uid];
+  else rsvps[currentUser.uid] = { status, name: currentUser.name };
+  await updateDoc(doc(db, "runs", runId), { rsvps });
+}
+
+// ---------------------------------------------------------------------
+// RENDER
+// ---------------------------------------------------------------------
+function runsByDateMap() {
+  const map = {};
+  for (const r of runs) (map[r.date] = map[r.date] || []).push(r);
+  return map;
+}
+function upcomingRuns() {
+  const key = dateKey(today);
+  return runs.filter((r) => r.date >= key).sort((a,b) => (a.date+a.time).localeCompare(b.date+b.time));
+}
+
+function render() {
+  const upcoming = upcomingRuns();
+  document.getElementById("races-count").textContent = upcoming.length ? upcoming.length : "";
+
+  // banner
+  const bannerSlot = document.getElementById("banner-slot");
+  bannerSlot.innerHTML = upcoming.length ? renderBanner(upcoming[0]) : "";
+  if (upcoming.length) {
+    document.getElementById("next-race-banner").addEventListener("click", () => {
+      activeTab = "races"; selectedDate = new Date(upcoming[0].date + "T00:00:00"); render();
+    });
+  }
+
+  // tabs
+  document.querySelectorAll(".tab-btn").forEach((btn) => {
+    btn.classList.toggle("active", btn.dataset.tab === activeTab);
+  });
+
+  const main = document.getElementById("main-content");
+  main.innerHTML = activeTab === "races" ? renderRacesTab(upcoming) : renderCalendarTab();
+  attachContentListeners();
+}
+
+function renderBanner(run) {
+  const goingCount = Object.values(run.rsvps || {}).filter((r) => r.status === "going").length;
+  const d = new Date(run.date + "T00:00:00");
+  const when = daysUntilLabel(run.date);
+  return `
+    <button class="banner" id="next-race-banner">
+      <div class="banner-date">
+        <span class="mon">${MONTHS[d.getMonth()].slice(0,3).toUpperCase()}</span>
+        <span class="day">${d.getDate()}</span>
+      </div>
+      <div style="flex:1; min-width:0;">
+        <div class="banner-tag">NEXT UP · ${when.toUpperCase()}</div>
+        <div class="banner-title">${escapeHtml(run.title || "Run")}</div>
+        <div class="banner-meta">
+          ${run.time ? `<span>${fmtTime(run.time)}</span>` : ""}
+          ${run.location ? `<span>${escapeHtml(run.location)}</span>` : ""}
+          <span>${goingCount} going</span>
+        </div>
+      </div>
+    </button>`;
+}
+
+function renderRunCard(run) {
+  const rsvps = run.rsvps || {};
+  const mine = rsvps[currentUser.uid]?.status;
+  const going = Object.values(rsvps).filter((r) => r.status === "going").map((r) => r.name);
+  const interested = Object.values(rsvps).filter((r) => r.status === "interested").map((r) => r.name);
+
+  return `
+    <div class="run-card" data-run-id="${run.id}">
+      <div class="run-card-top">
+        <div>
+          <div class="run-title">${escapeHtml(run.title || "Run")}</div>
+          <div class="run-meta">
+            ${run.time ? `<span>${fmtTime(run.time)}</span>` : ""}
+            ${run.location ? `<span>${escapeHtml(run.location)}</span>` : ""}
+            ${run.distance ? `<span>${escapeHtml(run.distance)}</span>` : ""}
+          </div>
+          ${run.notes ? `<div class="run-notes">${escapeHtml(run.notes)}</div>` : ""}
+          ${run.createdByName ? `<div class="run-by">Added by ${escapeHtml(run.createdByName)}</div>` : ""}
+        </div>
+        ${run.createdBy === currentUser.uid ? `<button class="run-delete" data-delete="${run.id}">&times;</button>` : ""}
+      </div>
+      <div class="rsvp-row">
+        ${Object.entries(STATUS).map(([key,s]) => `
+          <button class="rsvp-btn ${mine===key ? s.cls : ""}" data-rsvp="${run.id}" data-status="${key}">${s.label}</button>
+        `).join("")}
+      </div>
+      ${going.length ? `<div class="who-row"><div class="avatar-stack">${going.map(n=>`<div class="avatar-chip" style="background:var(--orange); color:#fff;" title="${escapeHtml(n)}">${initials(n)}</div>`).join("")}</div><span class="who-label">Going · ${going.map(escapeHtml).join(", ")}</span></div>` : ""}
+      ${interested.length ? `<div class="who-row"><div class="avatar-stack">${interested.map(n=>`<div class="avatar-chip" style="background:var(--chartreuse); color:var(--ink);" title="${escapeHtml(n)}">${initials(n)}</div>`).join("")}</div><span class="who-label">Interested · ${interested.map(escapeHtml).join(", ")}</span></div>` : ""}
+    </div>`;
+}
+
+function renderRacesTab(upcoming) {
+  if (upcoming.length === 0) {
+    return `<div style="text-align:center; padding:48px 12px;">
+      <div style="font-family:var(--display); font-size:18px; font-weight:600; margin-bottom:6px;">Nothing on the books</div>
+      <div style="color:var(--ink-soft); font-size:14px;">No upcoming runs yet. Get one on the calendar.</div>
+    </div>`;
+  }
+  const groups = []; let lastKey = null;
+  for (const r of upcoming) {
+    if (r.date !== lastKey) { groups.push({ date: r.date, runs: [] }); lastKey = r.date; }
+    groups[groups.length-1].runs.push(r);
+  }
+  const todayKey = dateKey(today);
+  return groups.map((g) => {
+    const d = new Date(g.date + "T00:00:00");
+    const isToday = g.date === todayKey;
+    return `<div style="margin-bottom:22px;">
+      <div class="race-date-head" style="color:${isToday ? 'var(--orange-deep)' : 'var(--ink)'};">
+        ${fmtDateLong(d)} ${isToday ? '<span style="font-size:11px; font-weight:700; color:var(--orange-deep);">TODAY</span>' : ""}
+      </div>
+      ${g.runs.map(renderRunCard).join("")}
+    </div>`;
+  }).join("");
+}
+
+function renderCalendarTab() {
+  const days = buildMonthGrid(viewMonth.getFullYear(), viewMonth.getMonth());
+  const byDate = runsByDateMap();
+  const selKey = dateKey(selectedDate);
+  const dayRuns = byDate[selKey] || [];
+
+  return `
+    <div class="cal-nav">
+      <button class="cal-nav-btn" id="cal-prev">&#8249;</button>
+      <div class="cal-month">${MONTHS[viewMonth.getMonth()]} ${viewMonth.getFullYear()}</div>
+      <button class="cal-nav-btn" id="cal-next">&#8250;</button>
+    </div>
+    <div class="cal-grid" style="margin-bottom:4px;">
+      ${WEEKDAYS.map((w,i)=>`<div class="cal-weekday">${w}</div>`).join("")}
+    </div>
+    <div class="cal-grid" style="margin-bottom:22px;">
+      ${days.map((d) => {
+        const inMonth = d.getMonth() === viewMonth.getMonth();
+        const isToday = sameDay(d, today);
+        const isSelected = sameDay(d, selectedDate);
+        const has = (byDate[dateKey(d)] || []).length > 0;
+        return `<button class="cal-day ${isSelected?"selected":""} ${!inMonth?"other-month":""}" data-date="${dateKey(d)}">
+          <span class="num ${isToday && !isSelected ? "today-mark" : ""}">${d.getDate()}</span>
+          ${has ? '<span class="dot"></span>' : ""}
+        </button>`;
+      }).join("")}
+    </div>
+    <div class="day-panel">
+      <div class="day-panel-head">
+        <div class="title">${fmtDateLong(selectedDate)}</div>
+      </div>
+      ${dayRuns.length === 0
+        ? `<div class="empty-note">No runs on the calendar yet. Be the one who plans it.</div>`
+        : dayRuns.map(renderRunCard).join("")}
+    </div>`;
+}
+
+function attachContentListeners() {
+  document.querySelectorAll("[data-rsvp]").forEach((btn) => {
+    btn.addEventListener("click", () => setRsvp(btn.dataset.rsvp, btn.dataset.status));
+  });
+  document.querySelectorAll("[data-delete]").forEach((btn) => {
+    btn.addEventListener("click", () => { if (confirm("Remove this run?")) deleteRun(btn.dataset.delete); });
+  });
+  document.querySelectorAll("[data-date]").forEach((btn) => {
+    btn.addEventListener("click", () => { selectedDate = new Date(btn.dataset.date + "T00:00:00"); render(); });
+  });
+  const prev = document.getElementById("cal-prev");
+  const next = document.getElementById("cal-next");
+  if (prev) prev.addEventListener("click", () => { viewMonth = new Date(viewMonth.getFullYear(), viewMonth.getMonth()-1, 1); render(); });
+  if (next) next.addEventListener("click", () => { viewMonth = new Date(viewMonth.getFullYear(), viewMonth.getMonth()+1, 1); render(); });
+}
+
+document.querySelectorAll(".tab-btn").forEach((btn) => {
+  btn.addEventListener("click", () => { activeTab = btn.dataset.tab; render(); });
+});
+
+// ---------------------------------------------------------------------
+// ADD RUN MODAL
+// ---------------------------------------------------------------------
+const addModal = document.getElementById("add-modal-overlay");
+document.getElementById("fab-add").addEventListener("click", () => {
+  document.getElementById("run-date").value = dateKey(selectedDate);
+  addModal.classList.remove("hidden");
+});
+document.getElementById("close-add-modal").addEventListener("click", () => addModal.classList.add("hidden"));
+addModal.addEventListener("click", (e) => { if (e.target === addModal) addModal.classList.add("hidden"); });
+
+document.getElementById("add-run-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const data = {
+    title: document.getElementById("run-title").value.trim(),
+    date: document.getElementById("run-date").value,
+    time: document.getElementById("run-time").value,
+    location: document.getElementById("run-location").value.trim(),
+    distance: document.getElementById("run-distance").value.trim(),
+    notes: document.getElementById("run-notes").value.trim(),
+  };
+  if (!data.title || !data.date) return;
+  await addRun(data);
+  e.target.reset();
+  addModal.classList.add("hidden");
+  selectedDate = new Date(data.date + "T00:00:00");
+  activeTab = "races";
+});
+</script>
+</body>
+</html>
