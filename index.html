@@ -244,14 +244,14 @@
     </main>
   </div>
 
-  <button class="fab" id="fab-add" title="Add a run">+</button>
+  <button class="fab" id="fab-add" title="Add an event">+</button>
 </div>
 
 <!-- ============ ADD RUN MODAL ============ -->
 <div id="add-modal-overlay" class="modal-overlay hidden">
   <div class="modal-sheet">
     <div class="modal-head">
-      <div class="modal-title">Add a run</div>
+      <div class="modal-title">Add an event</div>
       <button class="modal-close" id="close-add-modal">&times;</button>
     </div>
     <form id="add-run-form">
@@ -280,7 +280,7 @@
         <label class="field-label">Meeting point</label>
         <input type="text" id="run-location" placeholder="Riverside park entrance" />
       </div>
-      <div class="field">
+      <div class="field" id="distance-field">
         <label class="field-label">Distance (optional)</label>
         <input type="text" id="run-distance" placeholder="10k, easy pace" />
       </div>
@@ -529,7 +529,7 @@ function upcomingRuns() {
 }
 function pastRuns() {
   const key = dateKey(today);
-  return runs.filter((r) => r.date < key).sort((a,b) => (b.date+b.time).localeCompare(a.date+a.time));
+  return runs.filter((r) => r.date < key && typeOf(r) === "run").sort((a,b) => (b.date+b.time).localeCompare(a.date+a.time));
 }
 
 function render() {
@@ -790,11 +790,17 @@ document.querySelectorAll(".tab-btn").forEach((btn) => {
 // ---------------------------------------------------------------------
 const addModal = document.getElementById("add-modal-overlay");
 let selectedRunType = "run";
+function updateDistanceFieldVisibility() {
+  const isSocial = selectedRunType === "social";
+  document.getElementById("distance-field").classList.toggle("hidden", isSocial);
+  if (isSocial) document.getElementById("run-distance").value = "";
+}
 document.getElementById("fab-add").addEventListener("click", () => {
   document.getElementById("run-date").value = dateKey(selectedDate);
   selectedRunType = "run";
   document.getElementById("type-btn-run").classList.add("active-run");
   document.getElementById("type-btn-social").classList.remove("active-social");
+  updateDistanceFieldVisibility();
   addModal.classList.remove("hidden");
 });
 document.getElementById("close-add-modal").addEventListener("click", () => addModal.classList.add("hidden"));
@@ -805,6 +811,7 @@ document.querySelectorAll(".type-toggle-btn").forEach((btn) => {
     selectedRunType = btn.dataset.type;
     document.getElementById("type-btn-run").classList.toggle("active-run", selectedRunType === "run");
     document.getElementById("type-btn-social").classList.toggle("active-social", selectedRunType === "social");
+    updateDistanceFieldVisibility();
   });
 });
 
