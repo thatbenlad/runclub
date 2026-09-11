@@ -2,21 +2,28 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 <title>Downtown Drinking and Running</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0A0A0A">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="DD Running">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root {
-    --paper: #F6F4EE;
-    --paper-raised: #FFFFFF;
-    --ink: #20232B;
-    --ink-soft: #5B5E68;
-    --line: #E1DCCF;
+    --paper: #0A0A0A;
+    --paper-raised: #161616;
+    --ink: #F2F0EA;
+    --ink-soft: #A6A39C;
+    --line: #2B2B2B;
     --orange: #FF5A1F;
-    --orange-deep: #D8460A;
+    --orange-deep: #FF7A45;
     --chartreuse: #C9F24B;
-    --stone: #B8B3A4;
+    --stone: #6E6C66;
     --display: 'Oswald', 'Arial Narrow', sans-serif;
     --body: 'Inter', -apple-system, sans-serif;
   }
@@ -24,9 +31,6 @@
   body {
     margin: 0; color: var(--ink); font-family: var(--body);
     background-color: var(--paper);
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='44' height='44' viewBox='0 0 44 44'%3E%3Cg transform='translate(14,14) rotate(-6 8 8)'%3E%3Cpath d='M2 4 L2 14 Q2 15.5 3.5 15.5 L10.5 15.5 Q12 15.5 12 14 L12 4 Z' fill='%23E1DCCF'/%3E%3Cpath d='M12 6 Q16 6 16 9 Q16 12 12 11.5' stroke='%23E1DCCF' stroke-width='1.6' fill='none' stroke-linecap='round'/%3E%3Ccircle cx='3' cy='3' r='1.3' fill='%23E1DCCF'/%3E%3Ccircle cx='6' cy='2.2' r='1.5' fill='%23E1DCCF'/%3E%3Ccircle cx='9' cy='3' r='1.3' fill='%23E1DCCF'/%3E%3C/g%3E%3C/svg%3E");
-    background-repeat: repeat;
-    background-size: 44px 44px;
   }
   .wrap { max-width: 640px; margin: 0 auto; padding: 0 16px; }
   .hidden { display: none !important; }
@@ -41,15 +45,25 @@
     background: var(--paper-raised); font-size: 14px; color: var(--ink); font-family: var(--body);
   }
   input:focus, textarea:focus { outline: 2px solid var(--orange); outline-offset: 1px; }
+  @media (max-width: 480px) {
+    input, textarea, .comment-input { font-size: 16px; }
+  }
   label.field-label { font-size: 12px; font-weight: 600; color: var(--ink-soft); display: block; margin-bottom: 5px; }
   .field { margin-bottom: 12px; }
+  .type-toggle { display: flex; gap: 8px; }
+  .type-toggle-btn { flex: 1; padding: 10px 0; border-radius: 10px; border: 1px solid var(--line); background: var(--paper-raised); color: var(--ink-soft); font-weight: 700; font-size: 14px; font-family: var(--body); cursor: pointer; text-align: center; }
+  .type-toggle-btn.active-run { background: var(--orange); border-color: var(--orange); color: #fff; }
+  .type-toggle-btn.active-social { background: var(--chartreuse); border-color: var(--chartreuse); color: #111; }
+  .type-badge { display: inline-block; font-size: 10px; font-weight: 700; letter-spacing: .3px; padding: 2px 8px; border-radius: 999px; margin-left: 7px; vertical-align: middle; }
+  .type-badge.type-run { background: rgba(255,90,31,0.18); color: var(--orange); }
+  .type-badge.type-social { background: rgba(201,242,75,0.18); color: var(--chartreuse); }
 
   /* ---- auth screen ---- */
   #auth-screen { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; }
   .auth-card { background: var(--paper-raised); border: 1px solid var(--line); border-top: 4px solid var(--orange); border-radius: 4px 4px 20px 20px; padding: 28px; max-width: 380px; width: 100%; box-shadow: 0 10px 30px rgba(32,35,43,0.06); }
   .brand { font-family: var(--display); font-size: 22px; font-weight: 600; letter-spacing: .2px; line-height: 1.15; }
   .brand-sub { color: var(--ink-soft); font-size: 13px; margin-top: 6px; margin-bottom: 22px; }
-  .auth-error { background: #FDECE7; border: 1px solid var(--orange-deep); color: var(--orange-deep); padding: 8px 12px; border-radius: 8px; font-size: 13px; margin-bottom: 12px; }
+  .auth-error { background: #331812; border: 1px solid var(--orange-deep); color: var(--orange-deep); padding: 8px 12px; border-radius: 8px; font-size: 13px; margin-bottom: 12px; }
   .auth-toggle { text-align: center; margin-top: 14px; font-size: 13px; color: var(--ink-soft); }
   .auth-toggle a { color: var(--ink); font-weight: 600; cursor: pointer; text-decoration: underline; }
 
@@ -66,9 +80,9 @@
   .banner-date { flex: 0 0 auto; width: 54px; height: 54px; border-radius: 12px; background: var(--orange); display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1; }
   .banner-date .mon { font-family: var(--display); font-size: 10px; font-weight: 600; color: #fff; letter-spacing: .5px; }
   .banner-date .day { font-family: var(--display); font-size: 22px; font-weight: 700; color: #fff; }
-  .banner-tag { font-size: 11px; font-weight: 600; color: var(--chartreuse); letter-spacing: .3px; }
+  .banner-tag { font-size: 11px; font-weight: 600; color: var(--orange-deep); letter-spacing: .3px; }
   .banner-title { font-size: 16px; font-weight: 700; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .banner-meta { font-size: 12.5px; color: #C7C9D1; margin-top: 3px; display: flex; flex-wrap: wrap; gap: 2px 10px; }
+  .banner-meta { font-size: 12.5px; color: #4A4A4A; margin-top: 3px; display: flex; flex-wrap: wrap; gap: 2px 10px; }
 
   .tabs { display: flex; gap: 22px; border-bottom: 1px solid var(--line); margin-top: 20px; overflow-x: auto; }
   .tab-btn { flex: 0 0 auto; position: relative; padding: 10px 0 12px; border: none; cursor: pointer; background: none; font-family: var(--display); font-size: 15px; font-weight: 600; letter-spacing: .2px; color: var(--ink-soft); white-space: nowrap; }
@@ -80,7 +94,7 @@
 
   /* calendar */
   .cal-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
-  .cal-nav-btn { width: 32px; height: 32px; border-radius: 999px; border: 1px solid var(--line); background: var(--paper-raised); display: flex; align-items: center; justify-content: center; cursor: pointer; }
+  .cal-nav-btn { width: 32px; height: 32px; border-radius: 999px; border: 1px solid var(--line); background: var(--paper-raised); display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--ink); }
   .cal-month { font-family: var(--display); font-size: 18px; font-weight: 600; letter-spacing: .5px; }
   .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; }
   .cal-weekday { text-align: center; font-size: 11px; color: var(--stone); font-weight: 600; padding: 4px 0; }
@@ -121,16 +135,21 @@
   .rsvp-btn.active-going { background: var(--orange); border-color: var(--orange); color: #fff; }
   .rsvp-btn.active-interested { background: var(--chartreuse); border-color: var(--chartreuse); color: var(--ink); }
   .rsvp-btn.active-not { background: var(--stone); border-color: var(--stone); color: #fff; }
-  .who-row { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
+  .who-row { display: flex; align-items: flex-start; gap: 8px; margin-top: 6px; flex-wrap: wrap; }
   .avatar-stack { display: flex; }
   .avatar-chip { width: 24px; height: 24px; border-radius: 999px; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; border: 2px solid var(--paper-raised); margin-left: -8px; }
   .avatar-chip:first-child { margin-left: 0; }
-  .who-label { font-size: 12px; color: var(--ink-soft); }
+  .who-label { font-size: 12px; color: var(--ink-soft); flex: 1 1 160px; min-width: 0; }
 
   .comments-section { margin-top: 12px; padding-top: 10px; border-top: 1px dashed var(--line); }
-  .comment-list { display: flex; flex-direction: column; gap: 5px; margin-bottom: 8px; max-height: 160px; overflow-y: auto; }
-  .comment { font-size: 13px; color: var(--ink); line-height: 1.4; }
-  .comment-name { font-weight: 700; margin-right: 4px; }
+  .comment-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 8px; max-height: 200px; overflow-y: auto; }
+  .comment-item { display: flex; flex-direction: column; gap: 3px; }
+  .comment { font-size: 13px; color: var(--ink); line-height: 1.4; display: flex; align-items: flex-start; justify-content: space-between; gap: 6px; }
+  .comment-name { font-weight: 700; margin-right: 2px; }
+  .comment-delete { flex-shrink: 0; background: none; border: none; color: var(--stone); cursor: pointer; font-size: 15px; line-height: 1; padding: 0 2px; }
+  .reaction-row { display: flex; gap: 4px; flex-wrap: wrap; }
+  .reaction-btn { font-size: 12px; padding: 1px 7px; border-radius: 999px; border: 1px solid var(--line); background: var(--paper); cursor: pointer; line-height: 1.7; }
+  .reaction-btn.active { background: var(--chartreuse); border-color: var(--chartreuse); }
   .comment-form { display: flex; gap: 6px; }
   .comment-input { flex: 1; padding: 8px 10px; border-radius: 8px; font-size: 13px; }
   .comment-send { padding: 0 14px; border-radius: 8px; border: none; background: var(--ink); color: var(--paper); font-size: 13px; font-weight: 700; cursor: pointer; white-space: nowrap; }
@@ -139,14 +158,14 @@
 
   /* modal */
   .modal-overlay { position: fixed; inset: 0; background: rgba(32,35,43,.5); display: flex; align-items: flex-end; justify-content: center; z-index: 50; }
-  .modal-sheet { background: var(--paper); border-radius: 20px 20px 0 0; padding: 20px; width: 100%; max-width: 480px; max-height: 88vh; overflow-y: auto; }
+  .modal-sheet { background: var(--paper); border-radius: 20px 20px 0 0; padding: 20px 20px calc(20px + env(safe-area-inset-bottom)); width: 100%; max-width: 480px; max-height: 88vh; overflow-y: auto; }
   .modal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
   .modal-title { font-family: var(--display); font-size: 20px; font-weight: 600; }
   .modal-close { background: none; border: none; cursor: pointer; font-size: 20px; line-height: 1; color: var(--ink); }
   .field-row { display: flex; gap: 12px; }
   .field-row .field { flex: 1; }
 
-  .fab { position: fixed; bottom: 24px; right: 24px; width: 56px; height: 56px; border-radius: 999px; background: var(--orange); color: #fff; border: none; font-size: 26px; box-shadow: 0 6px 20px rgba(0,0,0,.25); cursor: pointer; }
+  .fab { position: fixed; bottom: calc(24px + env(safe-area-inset-bottom)); right: 24px; width: 56px; height: 56px; border-radius: 999px; background: var(--orange); color: #fff; border: none; font-size: 26px; box-shadow: 0 6px 20px rgba(0,0,0,.25); cursor: pointer; }
 
   .loading-note { color: var(--ink-soft); text-align: center; padding: 40px 0; }
 </style>
@@ -236,6 +255,13 @@
     </div>
     <form id="add-run-form">
       <div class="field">
+        <label class="field-label">What kind of event?</label>
+        <div class="type-toggle">
+          <button type="button" class="type-toggle-btn active-run" id="type-btn-run" data-type="run">Run</button>
+          <button type="button" class="type-toggle-btn" id="type-btn-social" data-type="social">Social</button>
+        </div>
+      </div>
+      <div class="field">
         <label class="field-label">What are we calling it?</label>
         <input type="text" id="run-title" placeholder="Saturday long run" required />
       </div>
@@ -296,6 +322,9 @@ const STATUS = {
   interested: { label: "Interested", cls: "active-interested" },
   not: { label: "Not for me", cls: "active-not" },
 };
+const QUICK_EMOJIS = ["👍", "😂", "🔥", "👎", "💪"];
+function typeOf(run) { return run.type === "social" ? "social" : "run"; }
+function typeColor(t) { return t === "social" ? "var(--chartreuse)" : "var(--orange)"; }
 
 function dateKey(d) { return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; }
 function sameDay(a,b){ return a.getFullYear()===b.getFullYear() && a.getMonth()===b.getMonth() && a.getDate()===b.getDate(); }
@@ -441,6 +470,7 @@ function listenToRuns() {
 
 async function addRun(data) {
   await addDoc(collection(db, "runs"), {
+    type: data.type === "social" ? "social" : "run",
     title: data.title, date: data.date, time: data.time,
     location: data.location, distance: data.distance, notes: data.notes,
     createdBy: currentUser.uid, createdByName: currentUser.name,
@@ -464,6 +494,26 @@ async function addComment(runId, text) {
     uid: currentUser.uid, name: currentUser.name, text: trimmed, createdAt: Date.now(),
   };
   await updateDoc(doc(db, "runs", runId), { comments: arrayUnion(comment) });
+}
+async function deleteComment(runId, commentId) {
+  const run = runs.find((r) => r.id === runId);
+  if (!run) return;
+  const newComments = (run.comments || []).filter((c) => c.id !== commentId);
+  await updateDoc(doc(db, "runs", runId), { comments: newComments });
+}
+async function toggleReaction(runId, commentId, emoji) {
+  const run = runs.find((r) => r.id === runId);
+  if (!run) return;
+  const newComments = (run.comments || []).map((c) => {
+    if (c.id !== commentId) return c;
+    const reactions = { ...(c.reactions || {}) };
+    const users = reactions[emoji] ? [...reactions[emoji]] : [];
+    const idx = users.indexOf(currentUser.uid);
+    if (idx >= 0) users.splice(idx, 1); else users.push(currentUser.uid);
+    if (users.length) reactions[emoji] = users; else delete reactions[emoji];
+    return { ...c, reactions };
+  });
+  await updateDoc(doc(db, "runs", runId), { comments: newComments });
 }
 
 // ---------------------------------------------------------------------
@@ -537,12 +587,13 @@ function renderRunCard(run, opts = {}) {
   const mine = rsvps[currentUser.uid]?.status;
   const going = Object.values(rsvps).filter((r) => r.status === "going").map((r) => r.name);
   const interested = Object.values(rsvps).filter((r) => r.status === "interested").map((r) => r.name);
+  const t = typeOf(run);
 
   return `
-    <div class="run-card" data-run-id="${run.id}">
+    <div class="run-card" data-run-id="${run.id}" style="border-left-color:${typeColor(t)};">
       <div class="run-card-top">
         <div>
-          <div class="run-title">${escapeHtml(run.title || "Run")}</div>
+          <div class="run-title">${escapeHtml(run.title || "Run")}<span class="type-badge type-${t}">${t === "social" ? "Social" : "Run"}</span></div>
           <div class="run-meta">
             ${run.time ? `<span>${fmtTime(run.time)}</span>` : ""}
             ${run.location ? `<span>${escapeHtml(run.location)}</span>` : ""}
@@ -553,7 +604,10 @@ function renderRunCard(run, opts = {}) {
         </div>
         ${run.createdBy === currentUser.uid ? `<button class="run-delete" data-delete="${run.id}">&times;</button>` : ""}
       </div>
-      ${readOnly ? "" : `
+      ${readOnly ? `
+      <div class="rsvp-row">
+        <button class="rsvp-btn ${mine === "going" ? STATUS.going.cls : ""}" data-rsvp="${run.id}" data-status="going">${mine === "going" ? "✓ You were there — tap to undo" : "Mark that you attended"}</button>
+      </div>` : `
       <div class="rsvp-row">
         ${Object.entries(STATUS).map(([key,s]) => `
           <button class="rsvp-btn ${mine===key ? s.cls : ""}" data-rsvp="${run.id}" data-status="${key}">${s.label}</button>
@@ -571,12 +625,31 @@ function renderComments(run) {
   return `
     <div class="comments-section">
       ${comments.length ? `<div class="comment-list">
-        ${comments.map((c) => `<div class="comment"><span class="comment-name">${escapeHtml(c.name)}</span> ${escapeHtml(c.text)}</div>`).join("")}
+        ${comments.map((c) => renderComment(run.id, c)).join("")}
       </div>` : ""}
       <form class="comment-form" data-comment-form="${run.id}">
         <input type="text" class="comment-input" placeholder="Coordinate here — who's driving, meeting spot, etc." maxlength="300" />
         <button type="submit" class="comment-send">Send</button>
       </form>
+    </div>`;
+}
+
+function renderComment(runId, c) {
+  const isMine = c.uid === currentUser.uid;
+  const reactions = c.reactions || {};
+  return `
+    <div class="comment-item">
+      <div class="comment">
+        <span><span class="comment-name">${escapeHtml(c.name)}</span> ${escapeHtml(c.text)}</span>
+        ${isMine ? `<button class="comment-delete" data-delete-comment="${runId}:${c.id}" title="Delete comment">&times;</button>` : ""}
+      </div>
+      <div class="reaction-row">
+        ${QUICK_EMOJIS.map((emoji) => {
+          const users = reactions[emoji] || [];
+          const mine = users.includes(currentUser.uid);
+          return `<button class="reaction-btn ${mine ? "active" : ""}" data-react="${runId}:${c.id}:${emoji}">${emoji}${users.length ? ` ${users.length}` : ""}</button>`;
+        }).join("")}
+      </div>
     </div>`;
 }
 
@@ -649,10 +722,16 @@ function renderCalendarTab() {
         const inMonth = d.getMonth() === viewMonth.getMonth();
         const isToday = sameDay(d, today);
         const isSelected = sameDay(d, selectedDate);
-        const count = (byDate[dateKey(d)] || []).length;
+        const dayRuns = byDate[dateKey(d)] || [];
+        const count = dayRuns.length;
+        const hasRun = dayRuns.some((r) => typeOf(r) === "run");
+        const hasSocial = dayRuns.some((r) => typeOf(r) === "social");
+        let badgeStyle = "background: var(--orange); color:#fff;";
+        if (hasRun && hasSocial) badgeStyle = "background: linear-gradient(90deg, var(--orange) 50%, var(--chartreuse) 50%); color:#111;";
+        else if (hasSocial) badgeStyle = "background: var(--chartreuse); color:#111;";
         return `<button class="cal-day ${isSelected?"selected":""} ${!inMonth?"other-month":""} ${isToday?"is-today":""}" data-date="${dateKey(d)}">
           <span class="num ${isToday ? "today-mark" : ""}">${d.getDate()}</span>
-          ${count > 0 ? `<span class="count-badge">${count}</span>` : ""}
+          ${count > 0 ? `<span class="count-badge" style="${badgeStyle}">${count}</span>` : ""}
         </button>`;
       }).join("")}
     </div>
@@ -685,6 +764,18 @@ function attachContentListeners() {
       addComment(form.dataset.commentForm, text);
     });
   });
+  document.querySelectorAll("[data-delete-comment]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const [runId, commentId] = btn.dataset.deleteComment.split(":");
+      if (confirm("Delete this comment?")) deleteComment(runId, commentId);
+    });
+  });
+  document.querySelectorAll("[data-react]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const [runId, commentId, emoji] = btn.dataset.react.split(":");
+      toggleReaction(runId, commentId, emoji);
+    });
+  });
   const prev = document.getElementById("cal-prev");
   const next = document.getElementById("cal-next");
   if (prev) prev.addEventListener("click", () => { viewMonth = new Date(viewMonth.getFullYear(), viewMonth.getMonth()-1, 1); render(); });
@@ -699,16 +790,29 @@ document.querySelectorAll(".tab-btn").forEach((btn) => {
 // ADD RUN MODAL
 // ---------------------------------------------------------------------
 const addModal = document.getElementById("add-modal-overlay");
+let selectedRunType = "run";
 document.getElementById("fab-add").addEventListener("click", () => {
   document.getElementById("run-date").value = dateKey(selectedDate);
+  selectedRunType = "run";
+  document.getElementById("type-btn-run").classList.add("active-run");
+  document.getElementById("type-btn-social").classList.remove("active-social");
   addModal.classList.remove("hidden");
 });
 document.getElementById("close-add-modal").addEventListener("click", () => addModal.classList.add("hidden"));
 addModal.addEventListener("click", (e) => { if (e.target === addModal) addModal.classList.add("hidden"); });
 
+document.querySelectorAll(".type-toggle-btn").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    selectedRunType = btn.dataset.type;
+    document.getElementById("type-btn-run").classList.toggle("active-run", selectedRunType === "run");
+    document.getElementById("type-btn-social").classList.toggle("active-social", selectedRunType === "social");
+  });
+});
+
 document.getElementById("add-run-form").addEventListener("submit", async (e) => {
   e.preventDefault();
   const data = {
+    type: selectedRunType,
     title: document.getElementById("run-title").value.trim(),
     date: document.getElementById("run-date").value,
     time: document.getElementById("run-time").value,
@@ -723,6 +827,13 @@ document.getElementById("add-run-form").addEventListener("submit", async (e) => 
   selectedDate = new Date(data.date + "T00:00:00");
   activeTab = "races";
 });
+</script>
+<script>
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("sw.js").catch((err) => console.warn("SW registration failed:", err));
+    });
+  }
 </script>
 </body>
 </html>
