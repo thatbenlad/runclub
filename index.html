@@ -156,6 +156,12 @@
   .comment-send { padding: 0 14px; border-radius: 8px; border: none; background: var(--ink); color: var(--paper); font-size: 13px; font-weight: 700; cursor: pointer; white-space: nowrap; }
 
   .race-date-head { font-family: var(--display); font-size: 14px; font-weight: 600; margin-bottom: 10px; display: flex; align-items: baseline; gap: 8px; }
+  .member-count { font-size: 13px; color: var(--ink-soft); margin-bottom: 14px; }
+  .member-list { display: flex; flex-direction: column; gap: 10px; }
+  .member-row { display: flex; align-items: center; gap: 12px; background: var(--paper-raised); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; }
+  .member-row .avatar-chip { width: 36px; height: 36px; font-size: 13px; flex-shrink: 0; }
+  .member-name { font-size: 14.5px; font-weight: 700; }
+  .member-joined { font-size: 12px; color: var(--ink-soft); margin-top: 2px; }
 
   /* modal */
   .modal-overlay { position: fixed; inset: 0; background: rgba(32,35,43,.5); display: flex; align-items: flex-end; justify-content: center; z-index: 50; }
@@ -236,6 +242,7 @@
         <button class="tab-btn" data-tab="races">Upcoming races <span class="tab-count" id="races-count"></span></button>
         <button class="tab-btn" data-tab="calendar">Calendar</button>
         <button class="tab-btn" data-tab="history">Race history</button>
+        <button class="tab-btn" data-tab="members">Members</button>
       </div>
     </header>
 
@@ -304,7 +311,7 @@ import {
   signOut, onAuthStateChanged, updateProfile, sendPasswordResetEmail
 } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js";
 import {
-  getFirestore, collection, addDoc, updateDoc, deleteDoc, doc,
+  getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, setDoc,
   onSnapshot, query, orderBy, serverTimestamp, arrayUnion
 } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
 import { firebaseConfig } from "./firebase-config.js";
@@ -364,10 +371,12 @@ function footprintIcon(){
 // ---------------------------------------------------------------------
 let currentUser = null;   // { uid, name, email }
 let runs = [];            // live from Firestore
+let members = [];         // live from Firestore "users" collection
 let activeTab = "races";
 let viewMonth = new Date(); viewMonth.setDate(1);
 let selectedDate = new Date();
 let unsubscribeRuns = null;
+let unsubscribeMembers = null;
 
 const today = new Date();
 
@@ -418,6 +427,7 @@ signupForm.addEventListener("submit", async (e) => {
   try {
     const cred = await createUserWithEmailAndPassword(auth, email, password);
     await updateProfile(cred.user, { displayName: name });
+    await setDoc(doc(db, "users", cred.user.uid), { name, email, joinedAt: serverTimestamp() });
   } catch (err) { showAuthError(friendlyAuthError(err)); }
 });
 
@@ -437,12 +447,16 @@ document.getElementById("avatar-btn").addEventListener("click", () => {
 
 onAuthStateChanged(auth, (user) => {
   if (unsubscribeRuns) { unsubscribeRuns(); unsubscribeRuns = null; }
+  if (unsubscribeMembers) { unsubscribeMembers(); unsubscribeMembers = null; }
   if (user) {
     currentUser = { uid: user.uid, name: user.displayName || user.email.split("@")[0], email: user.email };
     authScreen.classList.add("hidden");
     appEl.classList.remove("hidden");
     document.getElementById("avatar-btn").textContent = currentUser.name.trim().split(/\s+/)[0];
+    // Keep the member directory entry fresh without touching joinedAt (set once, at signup)
+    setDoc(doc(db, "users", currentUser.uid), { name: currentUser.name, email: currentUser.email }, { merge: true }).catch(() => {});
     listenToRuns();
+    listenToMembers();
   } else {
     currentUser = null;
     appEl.classList.add("hidden");
@@ -466,6 +480,16 @@ function listenToRuns() {
       `<div class="loading-note">Couldn't load the calendar: ${escapeHtml(err.message)}</div>`;
   });
 }
+
+function listenToMembers() {
+  unsubscribeMembers = onSnapshot(collection(db, "users"), (snap) => {
+    members = snap.docs
+      .map((d) => ({ uid: d.id, ...d.data() }))
+      .sort((a, b) => (a.name || "").localeCompare(b.name || ""));
+    render();
+  }, () => { /* if rules aren't set up yet, just leave the list empty rather than erroring */ });
+}
+
 
 async function addRun(data) {
   await addDoc(collection(db, "runs"), {
@@ -553,6 +577,7 @@ function render() {
   const main = document.getElementById("main-content");
   main.innerHTML = activeTab === "races" ? renderRacesTab(upcoming)
     : activeTab === "history" ? renderHistoryTab(pastRuns())
+    : activeTab === "members" ? renderMembersTab()
     : renderCalendarTab();
   attachContentListeners();
 }
@@ -698,6 +723,32 @@ function renderHistoryTab(past) {
       ${g.runs.map((r) => renderRunCard(r, { readOnly: true })).join("")}
     </div>`;
   }).join("");
+}
+
+
+function renderMembersTab() {
+  if (members.length === 0) {
+    return `<div class="empty-state">
+      ${footprintIcon()}
+      <div class="empty-title">No members yet</div>
+      <div class="empty-body">Once people sign up, they'll show up here.</div>
+    </div>`;
+  }
+  return `
+    <div class="member-count">${members.length} member${members.length === 1 ? "" : "s"}</div>
+    <div class="member-list">
+      ${members.map((m) => {
+        const isMe = m.uid === currentUser.uid;
+        const joined = m.joinedAt && m.joinedAt.toDate ? m.joinedAt.toDate() : null;
+        return `<div class="member-row">
+          <div class="avatar-chip" style="background:var(--orange); color:#fff; margin-left:0;">${initials(m.name || "?")}</div>
+          <div class="member-info">
+            <div class="member-name">${escapeHtml(m.name || "Unnamed")}${isMe ? ` <span class="type-badge type-run">You</span>` : ""}</div>
+            ${joined ? `<div class="member-joined">Joined ${fmtDateLong(joined)}</div>` : ""}
+          </div>
+        </div>`;
+      }).join("")}
+    </div>`;
 }
 
 
