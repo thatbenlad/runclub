@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Run Club</title>
+<title>Downtown Drinking and Running</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -21,7 +21,13 @@
     --body: 'Inter', -apple-system, sans-serif;
   }
   * { box-sizing: border-box; }
-  body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(--body); }
+  body {
+    margin: 0; color: var(--ink); font-family: var(--body);
+    background-color: var(--paper);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='44' height='44' viewBox='0 0 44 44'%3E%3Cg transform='translate(14,14) rotate(-6 8 8)'%3E%3Cpath d='M2 4 L2 14 Q2 15.5 3.5 15.5 L10.5 15.5 Q12 15.5 12 14 L12 4 Z' fill='%23E1DCCF'/%3E%3Cpath d='M12 6 Q16 6 16 9 Q16 12 12 11.5' stroke='%23E1DCCF' stroke-width='1.6' fill='none' stroke-linecap='round'/%3E%3Ccircle cx='3' cy='3' r='1.3' fill='%23E1DCCF'/%3E%3Ccircle cx='6' cy='2.2' r='1.5' fill='%23E1DCCF'/%3E%3Ccircle cx='9' cy='3' r='1.3' fill='%23E1DCCF'/%3E%3C/g%3E%3C/svg%3E");
+    background-repeat: repeat;
+    background-size: 44px 44px;
+  }
   .wrap { max-width: 640px; margin: 0 auto; padding: 0 16px; }
   .hidden { display: none !important; }
   button { font-family: var(--body); }
@@ -34,24 +40,29 @@
     width: 100%; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--line);
     background: var(--paper-raised); font-size: 14px; color: var(--ink); font-family: var(--body);
   }
+  input:focus, textarea:focus { outline: 2px solid var(--orange); outline-offset: 1px; }
   label.field-label { font-size: 12px; font-weight: 600; color: var(--ink-soft); display: block; margin-bottom: 5px; }
   .field { margin-bottom: 12px; }
 
   /* ---- auth screen ---- */
   #auth-screen { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; }
-  .auth-card { background: var(--paper-raised); border: 1px solid var(--line); border-radius: 20px; padding: 28px; max-width: 380px; width: 100%; }
-  .brand { font-family: var(--display); font-size: 30px; font-weight: 600; letter-spacing: .5px; }
-  .brand-sub { color: var(--ink-soft); font-size: 13px; margin-top: 4px; margin-bottom: 22px; }
+  .auth-card { background: var(--paper-raised); border: 1px solid var(--line); border-top: 4px solid var(--orange); border-radius: 4px 4px 20px 20px; padding: 28px; max-width: 380px; width: 100%; box-shadow: 0 10px 30px rgba(32,35,43,0.06); }
+  .brand { font-family: var(--display); font-size: 22px; font-weight: 600; letter-spacing: .2px; line-height: 1.15; }
+  .brand-sub { color: var(--ink-soft); font-size: 13px; margin-top: 6px; margin-bottom: 22px; }
   .auth-error { background: #FDECE7; border: 1px solid var(--orange-deep); color: var(--orange-deep); padding: 8px 12px; border-radius: 8px; font-size: 13px; margin-bottom: 12px; }
   .auth-toggle { text-align: center; margin-top: 14px; font-size: 13px; color: var(--ink-soft); }
   .auth-toggle a { color: var(--ink); font-weight: 600; cursor: pointer; text-decoration: underline; }
 
   /* ---- app shell ---- */
-  header.app-header { padding: 24px 0 0; border-bottom: 1px solid var(--line); padding-bottom: 16px; }
-  .header-row { display: flex; align-items: center; justify-content: space-between; }
-  .avatar-btn { width: 36px; height: 36px; border-radius: 999px; background: var(--ink); color: var(--paper); border: none; display: flex; align-items: center; justify-content: center; font-family: var(--display); font-size: 13px; font-weight: 600; cursor: pointer; }
+  header.app-header { position: relative; padding: 24px 0 22px; }
+  header.app-header::after {
+    content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 3px;
+    background-image: repeating-linear-gradient(90deg, var(--orange) 0 12px, transparent 12px 20px);
+  }
+  .header-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+  .avatar-btn { min-width: 36px; height: 36px; padding: 0 14px; border-radius: 999px; background: var(--ink); color: var(--paper); border: none; display: flex; align-items: center; justify-content: center; font-family: var(--display); font-size: 13px; font-weight: 600; letter-spacing: .2px; cursor: pointer; white-space: nowrap; }
 
-  .banner { width: 100%; display: flex; align-items: center; gap: 14px; background: var(--ink); color: var(--paper); border-radius: 16px; padding: 14px 16px; border: none; cursor: pointer; text-align: left; margin-top: 14px; }
+  .banner { width: 100%; display: flex; align-items: center; gap: 14px; background: var(--ink); color: var(--paper); border-radius: 16px; padding: 14px 16px; border: none; cursor: pointer; text-align: left; margin-top: 18px; position: relative; overflow: hidden; }
   .banner-date { flex: 0 0 auto; width: 54px; height: 54px; border-radius: 12px; background: var(--orange); display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1; }
   .banner-date .mon { font-family: var(--display); font-size: 10px; font-weight: 600; color: #fff; letter-spacing: .5px; }
   .banner-date .day { font-family: var(--display); font-size: 22px; font-weight: 700; color: #fff; }
@@ -59,10 +70,11 @@
   .banner-title { font-size: 16px; font-weight: 700; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .banner-meta { font-size: 12.5px; color: #C7C9D1; margin-top: 3px; display: flex; flex-wrap: wrap; gap: 2px 10px; }
 
-  .tabs { display: flex; gap: 4px; background: var(--line); border-radius: 999px; padding: 4px; margin-top: 16px; }
-  .tab-btn { flex: 1; padding: 9px 0; border-radius: 999px; border: none; cursor: pointer; font-family: var(--display); font-size: 13.5px; font-weight: 600; letter-spacing: .3px; background: transparent; color: var(--ink-soft); }
-  .tab-btn.active { background: var(--ink); color: var(--paper); }
-  .tab-count { margin-left: 6px; font-size: 11px; font-weight: 700; }
+  .tabs { display: flex; gap: 22px; border-bottom: 1px solid var(--line); margin-top: 20px; overflow-x: auto; }
+  .tab-btn { flex: 0 0 auto; position: relative; padding: 10px 0 12px; border: none; cursor: pointer; background: none; font-family: var(--display); font-size: 15px; font-weight: 600; letter-spacing: .2px; color: var(--ink-soft); white-space: nowrap; }
+  .tab-btn.active { color: var(--ink); }
+  .tab-btn.active::after { content: ""; position: absolute; left: 0; right: 0; bottom: -1px; height: 3px; border-radius: 2px 2px 0 0; background: var(--orange); }
+  .tab-count { margin-left: 5px; font-size: 11px; font-weight: 700; color: var(--orange-deep); }
 
   main { padding: 20px 0 60px; }
 
@@ -74,20 +86,30 @@
   .cal-weekday { text-align: center; font-size: 11px; color: var(--stone); font-weight: 600; padding: 4px 0; }
   .cal-day { aspect-ratio: 1; border-radius: 10px; border: 1px solid var(--line); background: var(--paper-raised); display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; position: relative; }
   .cal-day.selected { border: 2px solid var(--ink); background: var(--ink); color: var(--paper); }
-  .cal-day.other-month { opacity: .5; }
+  .cal-day.other-month { opacity: .45; }
   .cal-day .num { font-size: 13px; font-weight: 500; }
-  .cal-day .today-mark { text-decoration: underline; text-decoration-color: var(--orange); text-decoration-thickness: 2px; text-underline-offset: 3px; font-weight: 700; }
-  .cal-day .dot { margin-top: 3px; width: 5px; height: 5px; border-radius: 999px; background: var(--orange); }
-  .cal-day.selected .dot { background: var(--chartreuse); }
+  .cal-day.is-today { box-shadow: inset 0 0 0 2px var(--orange); }
+  .cal-day.is-today.selected { box-shadow: none; }
+  .cal-day .today-mark { font-weight: 700; }
+  .cal-day .count-badge {
+    position: absolute; top: 3px; right: 3px; min-width: 14px; height: 14px; padding: 0 3px;
+    border-radius: 999px; background: var(--orange); color: #fff; font-size: 9px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center; line-height: 1;
+  }
+  .cal-day.selected .count-badge { background: var(--chartreuse); color: var(--ink); }
 
   .day-panel { border-top: 1px solid var(--line); padding-top: 16px; margin-top: 22px; }
   .day-panel-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
   .day-panel-head .title { font-family: var(--display); font-size: 16px; font-weight: 600; }
 
   .empty-note { color: var(--ink-soft); font-size: 14px; padding: 18px 0; }
+  .empty-state { text-align: center; padding: 36px 12px; }
+  .empty-state svg { margin-bottom: 10px; }
+  .empty-state .empty-title { font-family: var(--display); font-size: 17px; font-weight: 600; margin-bottom: 4px; }
+  .empty-state .empty-body { color: var(--ink-soft); font-size: 14px; }
 
   /* run card */
-  .run-card { background: var(--paper-raised); border: 1px solid var(--line); border-radius: 14px; padding: 14px; margin-bottom: 10px; }
+  .run-card { background: var(--paper-raised); border: 1px solid var(--line); border-left: 4px solid var(--orange); border-radius: 4px 14px 14px 4px; padding: 14px 14px 14px 16px; margin-bottom: 10px; }
   .run-card-top { display: flex; align-items: flex-start; justify-content: space-between; }
   .run-title { font-size: 16px; font-weight: 700; }
   .run-meta { display: flex; flex-wrap: wrap; gap: 4px 14px; margin-top: 6px; font-size: 13px; color: var(--ink-soft); }
@@ -104,6 +126,14 @@
   .avatar-chip { width: 24px; height: 24px; border-radius: 999px; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; border: 2px solid var(--paper-raised); margin-left: -8px; }
   .avatar-chip:first-child { margin-left: 0; }
   .who-label { font-size: 12px; color: var(--ink-soft); }
+
+  .comments-section { margin-top: 12px; padding-top: 10px; border-top: 1px dashed var(--line); }
+  .comment-list { display: flex; flex-direction: column; gap: 5px; margin-bottom: 8px; max-height: 160px; overflow-y: auto; }
+  .comment { font-size: 13px; color: var(--ink); line-height: 1.4; }
+  .comment-name { font-weight: 700; margin-right: 4px; }
+  .comment-form { display: flex; gap: 6px; }
+  .comment-input { flex: 1; padding: 8px 10px; border-radius: 8px; font-size: 13px; }
+  .comment-send { padding: 0 14px; border-radius: 8px; border: none; background: var(--ink); color: var(--paper); font-size: 13px; font-weight: 700; cursor: pointer; white-space: nowrap; }
 
   .race-date-head { font-family: var(--display); font-size: 14px; font-weight: 600; margin-bottom: 10px; display: flex; align-items: baseline; gap: 8px; }
 
@@ -123,10 +153,11 @@
 </head>
 <body>
 
+
 <!-- ============ AUTH SCREEN ============ -->
 <div id="auth-screen">
   <div class="auth-card">
-    <div class="brand">Run Club</div>
+    <div class="brand">Downtown Drinking and Running</div>
     <div class="brand-sub">Sign in to see the group calendar</div>
     <div id="auth-error" class="auth-error hidden"></div>
 
@@ -174,8 +205,7 @@
     <header class="app-header">
       <div class="header-row">
         <div>
-          <div class="brand">Run Club</div>
-          <div class="brand-sub" id="signed-in-as" style="margin-bottom:0;">Group calendar</div>
+          <div class="brand">Downtown Drinking and Running</div>
         </div>
         <button class="avatar-btn" id="avatar-btn" title="Sign out">--</button>
       </div>
@@ -185,6 +215,7 @@
       <div class="tabs">
         <button class="tab-btn" data-tab="races">Upcoming races <span class="tab-count" id="races-count"></span></button>
         <button class="tab-btn" data-tab="calendar">Calendar</button>
+        <button class="tab-btn" data-tab="history">Race history</button>
       </div>
     </header>
 
@@ -247,7 +278,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js";
 import {
   getFirestore, collection, addDoc, updateDoc, deleteDoc, doc,
-  onSnapshot, query, orderBy, serverTimestamp
+  onSnapshot, query, orderBy, serverTimestamp, arrayUnion
 } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
 import { firebaseConfig } from "./firebase-config.js";
 
@@ -281,6 +312,24 @@ function buildMonthGrid(year, month){
   const days=[]; for(let i=0;i<42;i++){ const d=new Date(start); d.setDate(start.getDate()+i); days.push(d); } return days;
 }
 function escapeHtml(s){ return (s||"").replace(/[&<>"']/g, (c)=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+function footprintIcon(){
+  return `<svg width="72" height="56" viewBox="0 0 72 56" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <g fill="var(--stone)">
+      <ellipse cx="22" cy="38" rx="9" ry="14"/>
+      <circle cx="15" cy="21" r="3"/>
+      <circle cx="21" cy="18" r="3.2"/>
+      <circle cx="27" cy="19" r="2.8"/>
+      <circle cx="32" cy="22" r="2.4"/>
+    </g>
+    <g fill="var(--orange)">
+      <ellipse cx="50" cy="24" rx="9" ry="14"/>
+      <circle cx="43" cy="7" r="3"/>
+      <circle cx="49" cy="4" r="3.2"/>
+      <circle cx="55" cy="5" r="2.8"/>
+      <circle cx="60" cy="8" r="2.4"/>
+    </g>
+  </svg>`;
+}
 
 // ---------------------------------------------------------------------
 // state
@@ -355,7 +404,7 @@ function friendlyAuthError(e) {
 }
 
 document.getElementById("avatar-btn").addEventListener("click", () => {
-  if (confirm("Sign out of Run Club?")) signOut(auth);
+  if (confirm("Sign out of the club calendar?")) signOut(auth);
 });
 
 onAuthStateChanged(auth, (user) => {
@@ -364,8 +413,7 @@ onAuthStateChanged(auth, (user) => {
     currentUser = { uid: user.uid, name: user.displayName || user.email.split("@")[0], email: user.email };
     authScreen.classList.add("hidden");
     appEl.classList.remove("hidden");
-    document.getElementById("signed-in-as").textContent = `Signed in as ${currentUser.name}`;
-    document.getElementById("avatar-btn").textContent = initials(currentUser.name);
+    document.getElementById("avatar-btn").textContent = currentUser.name.trim().split(/\s+/)[0];
     listenToRuns();
   } else {
     currentUser = null;
@@ -379,9 +427,11 @@ onAuthStateChanged(auth, (user) => {
 // FIRESTORE
 // ---------------------------------------------------------------------
 function listenToRuns() {
-  const q = query(collection(db, "runs"), orderBy("date"), orderBy("time"));
+  const q = query(collection(db, "runs"), orderBy("date"));
   unsubscribeRuns = onSnapshot(q, (snap) => {
-    runs = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    runs = snap.docs
+      .map((d) => ({ id: d.id, ...d.data() }))
+      .sort((a, b) => (a.date + (a.time||"")).localeCompare(b.date + (b.time||"")));
     render();
   }, (err) => {
     document.getElementById("main-content").innerHTML =
@@ -406,6 +456,15 @@ async function setRsvp(runId, status) {
   else rsvps[currentUser.uid] = { status, name: currentUser.name };
   await updateDoc(doc(db, "runs", runId), { rsvps });
 }
+async function addComment(runId, text) {
+  const trimmed = text.trim();
+  if (!trimmed) return;
+  const comment = {
+    id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+    uid: currentUser.uid, name: currentUser.name, text: trimmed, createdAt: Date.now(),
+  };
+  await updateDoc(doc(db, "runs", runId), { comments: arrayUnion(comment) });
+}
 
 // ---------------------------------------------------------------------
 // RENDER
@@ -418,6 +477,10 @@ function runsByDateMap() {
 function upcomingRuns() {
   const key = dateKey(today);
   return runs.filter((r) => r.date >= key).sort((a,b) => (a.date+a.time).localeCompare(b.date+b.time));
+}
+function pastRuns() {
+  const key = dateKey(today);
+  return runs.filter((r) => r.date < key).sort((a,b) => (b.date+b.time).localeCompare(a.date+a.time));
 }
 
 function render() {
@@ -439,7 +502,9 @@ function render() {
   });
 
   const main = document.getElementById("main-content");
-  main.innerHTML = activeTab === "races" ? renderRacesTab(upcoming) : renderCalendarTab();
+  main.innerHTML = activeTab === "races" ? renderRacesTab(upcoming)
+    : activeTab === "history" ? renderHistoryTab(pastRuns())
+    : renderCalendarTab();
   attachContentListeners();
 }
 
@@ -462,10 +527,12 @@ function renderBanner(run) {
           <span>${goingCount} going</span>
         </div>
       </div>
+      <div style="position:absolute; left:0; right:0; bottom:0; height:2px; background-image: repeating-linear-gradient(90deg, var(--chartreuse) 0 8px, transparent 8px 14px); opacity:.6;"></div>
     </button>`;
 }
 
-function renderRunCard(run) {
+function renderRunCard(run, opts = {}) {
+  const readOnly = !!opts.readOnly;
   const rsvps = run.rsvps || {};
   const mine = rsvps[currentUser.uid]?.status;
   const going = Object.values(rsvps).filter((r) => r.status === "going").map((r) => r.name);
@@ -486,21 +553,39 @@ function renderRunCard(run) {
         </div>
         ${run.createdBy === currentUser.uid ? `<button class="run-delete" data-delete="${run.id}">&times;</button>` : ""}
       </div>
+      ${readOnly ? "" : `
       <div class="rsvp-row">
         ${Object.entries(STATUS).map(([key,s]) => `
           <button class="rsvp-btn ${mine===key ? s.cls : ""}" data-rsvp="${run.id}" data-status="${key}">${s.label}</button>
         `).join("")}
-      </div>
-      ${going.length ? `<div class="who-row"><div class="avatar-stack">${going.map(n=>`<div class="avatar-chip" style="background:var(--orange); color:#fff;" title="${escapeHtml(n)}">${initials(n)}</div>`).join("")}</div><span class="who-label">Going · ${going.map(escapeHtml).join(", ")}</span></div>` : ""}
-      ${interested.length ? `<div class="who-row"><div class="avatar-stack">${interested.map(n=>`<div class="avatar-chip" style="background:var(--chartreuse); color:var(--ink);" title="${escapeHtml(n)}">${initials(n)}</div>`).join("")}</div><span class="who-label">Interested · ${interested.map(escapeHtml).join(", ")}</span></div>` : ""}
+      </div>`}
+      ${going.length ? `<div class="who-row"><div class="avatar-stack">${going.map(n=>`<div class="avatar-chip" style="background:var(--orange); color:#fff;" title="${escapeHtml(n)}">${initials(n)}</div>`).join("")}</div><span class="who-label">${readOnly ? "Went" : "Going"} · ${going.map(escapeHtml).join(", ")}</span></div>` : ""}
+      ${!readOnly && interested.length ? `<div class="who-row"><div class="avatar-stack">${interested.map(n=>`<div class="avatar-chip" style="background:var(--chartreuse); color:var(--ink);" title="${escapeHtml(n)}">${initials(n)}</div>`).join("")}</div><span class="who-label">Interested · ${interested.map(escapeHtml).join(", ")}</span></div>` : ""}
+      ${readOnly && going.length === 0 ? `<div style="font-size:12.5px; color:var(--stone); margin-top:10px;">No one marked as going</div>` : ""}
+      ${renderComments(run)}
+    </div>`;
+}
+
+function renderComments(run) {
+  const comments = (run.comments || []).slice().sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
+  return `
+    <div class="comments-section">
+      ${comments.length ? `<div class="comment-list">
+        ${comments.map((c) => `<div class="comment"><span class="comment-name">${escapeHtml(c.name)}</span> ${escapeHtml(c.text)}</div>`).join("")}
+      </div>` : ""}
+      <form class="comment-form" data-comment-form="${run.id}">
+        <input type="text" class="comment-input" placeholder="Coordinate here — who's driving, meeting spot, etc." maxlength="300" />
+        <button type="submit" class="comment-send">Send</button>
+      </form>
     </div>`;
 }
 
 function renderRacesTab(upcoming) {
   if (upcoming.length === 0) {
-    return `<div style="text-align:center; padding:48px 12px;">
-      <div style="font-family:var(--display); font-size:18px; font-weight:600; margin-bottom:6px;">Nothing on the books</div>
-      <div style="color:var(--ink-soft); font-size:14px;">No upcoming runs yet. Get one on the calendar.</div>
+    return `<div class="empty-state">
+      ${footprintIcon()}
+      <div class="empty-title">Nothing on the books</div>
+      <div class="empty-body">No upcoming runs yet. Get one on the calendar.</div>
     </div>`;
   }
   const groups = []; let lastKey = null;
@@ -520,6 +605,29 @@ function renderRacesTab(upcoming) {
     </div>`;
   }).join("");
 }
+
+function renderHistoryTab(past) {
+  if (past.length === 0) {
+    return `<div class="empty-state">
+      ${footprintIcon()}
+      <div class="empty-title">No history yet</div>
+      <div class="empty-body">Past runs will show up here once they've happened.</div>
+    </div>`;
+  }
+  const groups = []; let lastKey = null;
+  for (const r of past) {
+    if (r.date !== lastKey) { groups.push({ date: r.date, runs: [] }); lastKey = r.date; }
+    groups[groups.length-1].runs.push(r);
+  }
+  return groups.map((g) => {
+    const d = new Date(g.date + "T00:00:00");
+    return `<div style="margin-bottom:22px;">
+      <div class="race-date-head">${fmtDateLong(d)}</div>
+      ${g.runs.map((r) => renderRunCard(r, { readOnly: true })).join("")}
+    </div>`;
+  }).join("");
+}
+
 
 function renderCalendarTab() {
   const days = buildMonthGrid(viewMonth.getFullYear(), viewMonth.getMonth());
@@ -541,10 +649,10 @@ function renderCalendarTab() {
         const inMonth = d.getMonth() === viewMonth.getMonth();
         const isToday = sameDay(d, today);
         const isSelected = sameDay(d, selectedDate);
-        const has = (byDate[dateKey(d)] || []).length > 0;
-        return `<button class="cal-day ${isSelected?"selected":""} ${!inMonth?"other-month":""}" data-date="${dateKey(d)}">
-          <span class="num ${isToday && !isSelected ? "today-mark" : ""}">${d.getDate()}</span>
-          ${has ? '<span class="dot"></span>' : ""}
+        const count = (byDate[dateKey(d)] || []).length;
+        return `<button class="cal-day ${isSelected?"selected":""} ${!inMonth?"other-month":""} ${isToday?"is-today":""}" data-date="${dateKey(d)}">
+          <span class="num ${isToday ? "today-mark" : ""}">${d.getDate()}</span>
+          ${count > 0 ? `<span class="count-badge">${count}</span>` : ""}
         </button>`;
       }).join("")}
     </div>
@@ -553,7 +661,7 @@ function renderCalendarTab() {
         <div class="title">${fmtDateLong(selectedDate)}</div>
       </div>
       ${dayRuns.length === 0
-        ? `<div class="empty-note">No runs on the calendar yet. Be the one who plans it.</div>`
+        ? `<div class="empty-state" style="padding: 24px 12px;">${footprintIcon()}<div class="empty-body">No runs on the calendar yet. Be the one who plans it.</div></div>`
         : dayRuns.map(renderRunCard).join("")}
     </div>`;
 }
@@ -567,6 +675,15 @@ function attachContentListeners() {
   });
   document.querySelectorAll("[data-date]").forEach((btn) => {
     btn.addEventListener("click", () => { selectedDate = new Date(btn.dataset.date + "T00:00:00"); render(); });
+  });
+  document.querySelectorAll("[data-comment-form]").forEach((form) => {
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const input = form.querySelector(".comment-input");
+      const text = input.value;
+      input.value = "";
+      addComment(form.dataset.commentForm, text);
+    });
   });
   const prev = document.getElementById("cal-prev");
   const next = document.getElementById("cal-next");
