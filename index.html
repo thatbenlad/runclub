@@ -164,9 +164,6 @@
   .member-joined { font-size: 12px; color: var(--ink-soft); margin-top: 2px; }
 
   /* ---- profile screen ---- */
-  #profile-screen { position: fixed; inset: 0; background: var(--paper); overflow-y: auto; z-index: 40; }
-  .profile-header { padding: calc(20px + env(safe-area-inset-top)) 0 8px; }
-  .profile-back { background: none; border: none; color: var(--ink-soft); font-family: var(--display); font-size: 14px; font-weight: 600; cursor: pointer; padding: 6px 0; }
   .profile-identity { display: flex; align-items: center; gap: 14px; margin: 10px 0 18px; }
   .profile-photo-wrap { display: flex; flex-direction: column; align-items: center; gap: 6px; }
   .profile-photo { width: 64px; height: 64px; border-radius: 999px; background: var(--orange); color: #fff; display: flex; align-items: center; justify-content: center; font-family: var(--display); font-size: 22px; font-weight: 700; overflow: hidden; }
@@ -282,7 +279,7 @@
       <div id="banner-slot"></div>
 
       <div class="tabs">
-        <button class="tab-btn" data-tab="races">Upcoming races <span class="tab-count" id="races-count"></span></button>
+        <button class="tab-btn" data-tab="races">Upcoming <span class="tab-count" id="races-count"></span></button>
         <button class="tab-btn" data-tab="calendar">Calendar</button>
         <button class="tab-btn" data-tab="history">Race history</button>
         <button class="tab-btn" id="mypage-tab" data-tab="mypage">My page</button>
@@ -296,83 +293,6 @@
   </div>
 
   <button class="fab" id="fab-add" title="Add an event">+</button>
-</div>
-
-<!-- ============ PROFILE SCREEN ============ -->
-<div id="profile-screen" class="hidden">
-  <div class="wrap">
-    <div class="profile-header">
-      <button class="profile-back" id="profile-back">&#8249; Back</button>
-    </div>
-
-    <div class="profile-identity">
-      <div class="profile-photo-wrap">
-        <div class="profile-photo" id="profile-photo">?</div>
-        <label class="profile-photo-upload" for="profile-photo-input">Change photo</label>
-        <input type="file" id="profile-photo-input" accept="image/*" class="hidden" />
-      </div>
-      <div>
-        <div class="profile-name" id="profile-name-display">—</div>
-        <div class="profile-email" id="profile-email-display">—</div>
-      </div>
-    </div>
-    <div id="photo-upload-status" class="hidden"></div>
-
-    <div class="profile-section">
-      <div class="profile-section-title">Contact info</div>
-      <div style="font-size:12.5px; color:var(--ink-soft); margin:-4px 0 10px;">Optional — visible to other members on the Members tab.</div>
-      <form class="profile-add-form" id="contact-info-form">
-        <label class="field-label">Cell phone</label>
-        <input type="tel" id="profile-phone" placeholder="e.g. 555-123-4567" />
-        <label class="field-label" style="margin-top:6px;">Birthday</label>
-        <input type="date" id="profile-birthday" />
-        <button type="submit" class="btn btn-dark" style="width:100%; margin-top:4px;">Save contact info</button>
-      </form>
-    </div>
-
-    <div class="profile-stats" id="profile-stats"></div>
-
-    <div class="profile-section">
-      <div class="profile-section-title">Personal records</div>
-      <div id="profile-prs"></div>
-    </div>
-
-    <div class="profile-section">
-      <div class="profile-section-title">My times for club races</div>
-      <div id="profile-club-results"></div>
-    </div>
-
-    <div class="profile-section">
-      <div class="profile-section-title">My personal runs</div>
-      <div id="profile-personal-runs"></div>
-      <form class="profile-add-form" id="add-personal-run-form">
-        <input type="text" id="pr-title" placeholder="Run name (optional)" />
-        <div class="field-row">
-          <input type="date" id="pr-date" required />
-          <input type="text" id="pr-distance" placeholder="Distance, e.g. 10k" />
-        </div>
-        <div class="field-row">
-          <input type="text" id="pr-time" placeholder="Time, e.g. 48:12" />
-          <input type="text" id="pr-notes" placeholder="Notes (optional)" />
-        </div>
-        <button type="submit" class="btn btn-dark" style="width:100%;">Log this run</button>
-      </form>
-    </div>
-
-    <div class="profile-section">
-      <div class="profile-section-title">Goals</div>
-      <div id="profile-goals"></div>
-      <form class="profile-add-form" id="add-goal-form">
-        <input type="text" id="goal-text" placeholder="e.g. Sub-25 5K" required />
-        <label class="field-label" style="margin-top:8px;">Target date (optional)</label>
-        <input type="date" id="goal-date" />
-        <button type="submit" class="btn btn-dark" style="width:100%;">Add goal</button>
-      </form>
-    </div>
-
-    <button class="btn btn-ghost" id="profile-signout" style="width:100%; margin: 20px 0 10px;">Sign out</button>
-    <button class="delete-account-link" id="profile-delete-account">Delete my profile &amp; data</button>
-  </div>
 </div>
 
 <!-- ============ ADD RUN MODAL ============ -->
@@ -509,7 +429,6 @@ let unsubscribeRuns = null;
 let unsubscribeMembers = null;
 let unsubscribeProfile = null;
 let myProfile = { personalRuns: [], clubResults: {}, goals: [], prs: {} };
-let profileScreenOpen = false;
 
 const today = new Date();
 
@@ -575,118 +494,21 @@ function friendlyAuthError(e) {
 }
 
 document.getElementById("avatar-btn").addEventListener("click", () => {
-  openProfile();
-});
-document.getElementById("profile-back").addEventListener("click", () => closeProfile());
-document.getElementById("profile-signout").addEventListener("click", () => {
-  if (confirm("Sign out of the club calendar?")) signOut(auth);
-});
-document.getElementById("profile-delete-account").addEventListener("click", async () => {
-  const sure = confirm(
-    "Permanently delete your profile, stats, and account?\n\n" +
-    "This removes you from the Members list and deletes your personal records, goals, and logged runs. " +
-    "Comments and RSVPs you've left on existing events will stay (like most apps, deleting your account doesn't rewrite others' history). " +
-    "This cannot be undone."
-  );
-  if (!sure) return;
-
-  const uid = currentUser.uid;
-  try {
-    await deleteDoc(doc(db, "profiles", uid)).catch(() => {});
-    await deleteDoc(doc(db, "users", uid)).catch(() => {});
-    await deleteUser(auth.currentUser);
-    // onAuthStateChanged fires automatically once the account is gone, returning to sign-in.
-  } catch (err) {
-    if (err.code === "auth/requires-recent-login") {
-      const password = prompt("For security, please re-enter your password to confirm account deletion:");
-      if (!password) return;
-      try {
-        const cred = EmailAuthProvider.credential(currentUser.email, password);
-        await reauthenticateWithCredential(auth.currentUser, cred);
-        await deleteUser(auth.currentUser);
-      } catch (err2) {
-        alert("Couldn't verify your password — your data was removed, but the account sign-in itself may still exist. Try again or contact whoever manages the club's Firebase project.");
-      }
-    } else {
-      alert("Something went wrong deleting your account. Please try again.");
-    }
-  }
-});
-document.getElementById("profile-photo-input").addEventListener("change", (e) => {
-  const file = e.target.files[0];
-  if (file) uploadProfilePhoto(file);
-});
-document.getElementById("contact-info-form").addEventListener("submit", async (e) => {
-  e.preventDefault();
-  const phone = document.getElementById("profile-phone").value.trim();
-  const birthday = document.getElementById("profile-birthday").value;
-  await setDoc(doc(db, "users", currentUser.uid), { phone, birthday }, { merge: true });
-  const btn = e.target.querySelector("button[type=submit]");
-  const original = btn.textContent;
-  btn.textContent = "Saved ✓";
-  setTimeout(() => { btn.textContent = original; }, 1500);
-});
-document.getElementById("add-personal-run-form").addEventListener("submit", (e) => {
-  e.preventDefault();
-  const data = {
-    title: document.getElementById("pr-title").value.trim(),
-    date: document.getElementById("pr-date").value,
-    distance: document.getElementById("pr-distance").value.trim(),
-    time: document.getElementById("pr-time").value.trim(),
-    notes: document.getElementById("pr-notes").value.trim(),
-  };
-  if (!data.date) return;
-  addPersonalRun(data);
-  e.target.reset();
-});
-document.getElementById("add-goal-form").addEventListener("submit", (e) => {
-  e.preventDefault();
-  const text = document.getElementById("goal-text").value.trim();
-  const targetDate = document.getElementById("goal-date").value;
-  if (!text) return;
-  addGoal(text, targetDate);
-  e.target.reset();
+  activeTab = "mypage";
+  render();
 });
 
-function openProfile() {
-  profileScreenOpen = true;
-  document.getElementById("profile-screen").classList.remove("hidden");
-  renderProfileScreen();
-}
-function closeProfile() {
-  profileScreenOpen = false;
-  document.getElementById("profile-screen").classList.add("hidden");
-}
-
-function renderProfileScreen() {
-  // identity
-  document.getElementById("profile-name-display").textContent = currentUser.name;
-  document.getElementById("profile-email-display").textContent = currentUser.email;
+function renderMyPageTab() {
   const me = members.find((m) => m.uid === currentUser.uid);
-  const photoEl = document.getElementById("profile-photo");
-  photoEl.innerHTML = me && me.photoURL
+  const photoInner = me && me.photoURL
     ? `<img src="${me.photoURL}" alt="">`
     : initials(currentUser.name);
 
-  // contact info (only overwrite while the fields aren't mid-edit)
-  const phoneInput = document.getElementById("profile-phone");
-  const birthdayInput = document.getElementById("profile-birthday");
-  if (document.activeElement !== phoneInput) phoneInput.value = (me && me.phone) || "";
-  if (document.activeElement !== birthdayInput) birthdayInput.value = (me && me.birthday) || "";
-
-  // stats
   const pastTypedRuns = pastRuns(); // already filters to type "run", past dates
   const attendedRaces = pastTypedRuns.filter((r) => (r.rsvps || {})[currentUser.uid]?.status === "going").length;
   const pastSocials = runs.filter((r) => r.date < dateKey(today) && typeOf(r) === "social" && (r.rsvps||{})[currentUser.uid]?.status === "going").length;
-  const memberSince = me && me.joinedAt && me.joinedAt.toDate ? me.joinedAt.toDate() : null;
-  document.getElementById("profile-stats").innerHTML = `
-    <div class="stat-box"><div class="stat-num">${attendedRaces}</div><div class="stat-label">Races attended</div></div>
-    <div class="stat-box"><div class="stat-num">${pastSocials}</div><div class="stat-label">Socials attended</div></div>
-    <div class="stat-box"><div class="stat-num">${myProfile.personalRuns.length}</div><div class="stat-label">Logged runs</div></div>
-  `;
 
-  // personal records — fixed set of standard distances, one editable time each
-  document.getElementById("profile-prs").innerHTML = DISTANCE_CATEGORIES.map((cat) => {
+  const prsHtml = DISTANCE_CATEGORIES.map((cat) => {
     const existing = myProfile.prs[cat.key] || "";
     return `<div class="club-result-row" data-pr="${cat.key}">
       <div class="cr-title">${cat.label}</div>
@@ -697,65 +519,196 @@ function renderProfileScreen() {
     </div>`;
   }).join("");
 
-  // club results — past races, with an editable time field each
-  const resultsEl = document.getElementById("profile-club-results");
-  if (pastTypedRuns.length === 0) {
-    resultsEl.innerHTML = `<div class="profile-list-empty">No past races yet.</div>`;
-  } else {
-    resultsEl.innerHTML = pastTypedRuns.map((r) => {
-      const existing = myProfile.clubResults[r.id] || {};
-      const d = new Date(r.date + "T00:00:00");
-      return `<div class="club-result-row" data-club-result="${r.id}">
-        <div class="cr-title">${escapeHtml(r.title || "Run")}</div>
-        <div class="cr-date">${fmtDateLong(d)}</div>
-        <div class="cr-input-row">
-          <input type="text" class="cr-time-input" placeholder="Your time, e.g. 24:10" value="${escapeHtml(existing.time || "")}" />
-          <button class="cr-save" data-save-result="${r.id}">Save</button>
-        </div>
-      </div>`;
-    }).join("");
-  }
+  const clubResultsHtml = pastTypedRuns.length === 0
+    ? `<div class="profile-list-empty">No past races yet.</div>`
+    : pastTypedRuns.map((r) => {
+        const existing = myProfile.clubResults[r.id] || {};
+        const d = new Date(r.date + "T00:00:00");
+        return `<div class="club-result-row" data-club-result="${r.id}">
+          <div class="cr-title">${escapeHtml(r.title || "Run")}</div>
+          <div class="cr-date">${fmtDateLong(d)}</div>
+          <div class="cr-input-row">
+            <input type="text" class="cr-time-input" placeholder="Your time, e.g. 24:10" value="${escapeHtml(existing.time || "")}" />
+            <button class="cr-save" data-save-result="${r.id}">Save</button>
+          </div>
+        </div>`;
+      }).join("");
 
-  // personal runs
-  const prEl = document.getElementById("profile-personal-runs");
-  if (myProfile.personalRuns.length === 0) {
-    prEl.innerHTML = `<div class="profile-list-empty">Log a training run below to start tracking.</div>`;
-  } else {
-    const sorted = [...myProfile.personalRuns].sort((a, b) => b.date.localeCompare(a.date));
-    prEl.innerHTML = sorted.map((r) => {
-      const d = new Date(r.date + "T00:00:00");
-      const bits = [r.distance, r.time].filter(Boolean).join(" · ");
-      return `<div class="profile-list-item">
-        <div>
-          <div class="pli-title">${escapeHtml(r.title || "Run")} — ${fmtDateLong(d)}</div>
-          ${bits ? `<div class="pli-meta">${escapeHtml(bits)}</div>` : ""}
-          ${r.notes ? `<div class="pli-meta">${escapeHtml(r.notes)}</div>` : ""}
-        </div>
-        <button class="pli-delete" data-delete-personal-run="${r.id}">&times;</button>
-      </div>`;
-    }).join("");
-  }
+  const personalRunsHtml = myProfile.personalRuns.length === 0
+    ? `<div class="profile-list-empty">Log a training run below to start tracking.</div>`
+    : [...myProfile.personalRuns].sort((a, b) => b.date.localeCompare(a.date)).map((r) => {
+        const d = new Date(r.date + "T00:00:00");
+        const bits = [r.distance, r.time].filter(Boolean).join(" · ");
+        return `<div class="profile-list-item">
+          <div>
+            <div class="pli-title">${escapeHtml(r.title || "Run")} — ${fmtDateLong(d)}</div>
+            ${bits ? `<div class="pli-meta">${escapeHtml(bits)}</div>` : ""}
+            ${r.notes ? `<div class="pli-meta">${escapeHtml(r.notes)}</div>` : ""}
+          </div>
+          <button class="pli-delete" data-delete-personal-run="${r.id}">&times;</button>
+        </div>`;
+      }).join("");
 
-  // goals
-  const goalsEl = document.getElementById("profile-goals");
-  if (myProfile.goals.length === 0) {
-    goalsEl.innerHTML = `<div class="profile-list-empty">No goals yet — add one below.</div>`;
-  } else {
-    goalsEl.innerHTML = myProfile.goals.map((g) => `
-      <div class="goal-row">
-        <button class="goal-check ${g.done ? "done" : ""}" data-toggle-goal="${g.id}"></button>
-        <div style="flex:1;">
-          <div class="goal-text ${g.done ? "done" : ""}">${escapeHtml(g.text)}</div>
-          ${g.targetDate ? `<div class="goal-target">Target: ${fmtDateLong(new Date(g.targetDate + "T00:00:00"))}</div>` : ""}
-        </div>
-        <button class="pli-delete" data-delete-goal="${g.id}">&times;</button>
-      </div>`).join("");
-  }
+  const goalsHtml = myProfile.goals.length === 0
+    ? `<div class="profile-list-empty">No goals yet — add one below.</div>`
+    : myProfile.goals.map((g) => `
+        <div class="goal-row">
+          <button class="goal-check ${g.done ? "done" : ""}" data-toggle-goal="${g.id}"></button>
+          <div style="flex:1;">
+            <div class="goal-text ${g.done ? "done" : ""}">${escapeHtml(g.text)}</div>
+            ${g.targetDate ? `<div class="goal-target">Target: ${fmtDateLong(new Date(g.targetDate + "T00:00:00"))}</div>` : ""}
+          </div>
+          <button class="pli-delete" data-delete-goal="${g.id}">&times;</button>
+        </div>`).join("");
 
-  attachProfileListeners();
+  return `
+    <div class="profile-identity">
+      <div class="profile-photo-wrap">
+        <div class="profile-photo" id="profile-photo">${photoInner}</div>
+        <label class="profile-photo-upload" for="profile-photo-input">Change photo</label>
+        <input type="file" id="profile-photo-input" accept="image/*" class="hidden" />
+      </div>
+      <div>
+        <div class="profile-name">${escapeHtml(currentUser.name)}</div>
+        <div class="profile-email">${escapeHtml(currentUser.email)}</div>
+      </div>
+    </div>
+    <div id="photo-upload-status" class="hidden"></div>
+
+    <div class="profile-section">
+      <div class="profile-section-title">Contact info</div>
+      <div style="font-size:12.5px; color:var(--ink-soft); margin:-4px 0 10px;">Optional — visible to other members on the Members tab.</div>
+      <form class="profile-add-form" id="contact-info-form">
+        <label class="field-label">Cell phone</label>
+        <input type="tel" id="profile-phone" placeholder="e.g. 555-123-4567" value="${escapeHtml((me && me.phone) || "")}" />
+        <label class="field-label" style="margin-top:6px;">Birthday</label>
+        <input type="date" id="profile-birthday" value="${(me && me.birthday) || ""}" />
+        <button type="submit" class="btn btn-dark" style="width:100%; margin-top:4px;">Save contact info</button>
+      </form>
+    </div>
+
+    <div class="profile-stats">
+      <div class="stat-box"><div class="stat-num">${attendedRaces}</div><div class="stat-label">Races attended</div></div>
+      <div class="stat-box"><div class="stat-num">${pastSocials}</div><div class="stat-label">Socials attended</div></div>
+      <div class="stat-box"><div class="stat-num">${myProfile.personalRuns.length}</div><div class="stat-label">Logged runs</div></div>
+    </div>
+
+    <div class="profile-section">
+      <div class="profile-section-title">Personal records</div>
+      <div>${prsHtml}</div>
+    </div>
+
+    <div class="profile-section">
+      <div class="profile-section-title">My times for club races</div>
+      <div>${clubResultsHtml}</div>
+    </div>
+
+    <div class="profile-section">
+      <div class="profile-section-title">My personal runs</div>
+      <div>${personalRunsHtml}</div>
+      <form class="profile-add-form" id="add-personal-run-form">
+        <input type="text" id="pr-title" placeholder="Run name (optional)" />
+        <div class="field-row">
+          <input type="date" id="pr-date" required />
+          <input type="text" id="pr-distance" placeholder="Distance, e.g. 10k" />
+        </div>
+        <div class="field-row">
+          <input type="text" id="pr-time" placeholder="Time, e.g. 48:12" />
+          <input type="text" id="pr-notes" placeholder="Notes (optional)" />
+        </div>
+        <button type="submit" class="btn btn-dark" style="width:100%;">Log this run</button>
+      </form>
+    </div>
+
+    <div class="profile-section">
+      <div class="profile-section-title">Goals</div>
+      <div>${goalsHtml}</div>
+      <form class="profile-add-form" id="add-goal-form">
+        <input type="text" id="goal-text" placeholder="e.g. Sub-25 5K" required />
+        <label class="field-label" style="margin-top:8px;">Target date (optional)</label>
+        <input type="date" id="goal-date" />
+        <button type="submit" class="btn btn-dark" style="width:100%;">Add goal</button>
+      </form>
+    </div>
+
+    <button class="btn btn-ghost" id="profile-signout" style="width:100%; margin: 20px 0 10px;">Sign out</button>
+    <button class="delete-account-link" id="profile-delete-account">Delete my profile &amp; data</button>
+  `;
 }
 
-function attachProfileListeners() {
+function attachMyPageListeners() {
+  const signoutBtn = document.getElementById("profile-signout");
+  if (!signoutBtn) return; // not on My page right now
+
+  signoutBtn.addEventListener("click", () => {
+    if (confirm("Sign out of the club calendar?")) signOut(auth);
+  });
+  document.getElementById("profile-delete-account").addEventListener("click", async () => {
+    const sure = confirm(
+      "Permanently delete your profile, stats, and account?\n\n" +
+      "This removes you from the Members list and deletes your personal records, goals, and logged runs. " +
+      "Comments and RSVPs you've left on existing events will stay (like most apps, deleting your account doesn't rewrite others' history). " +
+      "This cannot be undone."
+    );
+    if (!sure) return;
+
+    const uid = currentUser.uid;
+    try {
+      await deleteDoc(doc(db, "profiles", uid)).catch(() => {});
+      await deleteDoc(doc(db, "users", uid)).catch(() => {});
+      await deleteUser(auth.currentUser);
+      // onAuthStateChanged fires automatically once the account is gone, returning to sign-in.
+    } catch (err) {
+      if (err.code === "auth/requires-recent-login") {
+        const password = prompt("For security, please re-enter your password to confirm account deletion:");
+        if (!password) return;
+        try {
+          const cred = EmailAuthProvider.credential(currentUser.email, password);
+          await reauthenticateWithCredential(auth.currentUser, cred);
+          await deleteUser(auth.currentUser);
+        } catch (err2) {
+          alert("Couldn't verify your password — your data was removed, but the account sign-in itself may still exist. Try again or contact whoever manages the club's Firebase project.");
+        }
+      } else {
+        alert("Something went wrong deleting your account. Please try again.");
+      }
+    }
+  });
+  document.getElementById("profile-photo-input").addEventListener("change", (e) => {
+    const file = e.target.files[0];
+    if (file) uploadProfilePhoto(file);
+  });
+  document.getElementById("contact-info-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const phone = document.getElementById("profile-phone").value.trim();
+    const birthday = document.getElementById("profile-birthday").value;
+    await setDoc(doc(db, "users", currentUser.uid), { phone, birthday }, { merge: true });
+    const btn = e.target.querySelector("button[type=submit]");
+    const original = btn.textContent;
+    btn.textContent = "Saved ✓";
+    setTimeout(() => { btn.textContent = original; }, 1500);
+  });
+  document.getElementById("add-personal-run-form").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const data = {
+      title: document.getElementById("pr-title").value.trim(),
+      date: document.getElementById("pr-date").value,
+      distance: document.getElementById("pr-distance").value.trim(),
+      time: document.getElementById("pr-time").value.trim(),
+      notes: document.getElementById("pr-notes").value.trim(),
+    };
+    if (!data.date) return;
+    addPersonalRun(data);
+    e.target.reset();
+  });
+  document.getElementById("add-goal-form").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const text = document.getElementById("goal-text").value.trim();
+    const targetDate = document.getElementById("goal-date").value;
+    if (!text) return;
+    addGoal(text, targetDate);
+    e.target.reset();
+  });
   document.querySelectorAll("[data-save-pr]").forEach((btn) => {
     btn.addEventListener("click", () => {
       const key = btn.dataset.savePr;
@@ -801,8 +754,7 @@ onAuthStateChanged(auth, (user) => {
     currentUser = null;
     appEl.classList.add("hidden");
     authScreen.classList.remove("hidden");
-    document.getElementById("profile-screen").classList.add("hidden");
-    profileScreenOpen = false;
+    activeTab = "races";
     signinForm.reset(); signupForm.reset();
   }
 });
@@ -841,7 +793,7 @@ function listenToProfile() {
       goals: data.goals || [],
       prs: data.prs || {},
     };
-    if (profileScreenOpen) renderProfileScreen();
+    if (activeTab === "mypage") render();
   }, () => { /* profile doc/rules not set up yet — just use empty defaults */ });
 }
 
@@ -973,7 +925,6 @@ async function uploadProfilePhoto(file) {
     await setDoc(doc(db, "users", currentUser.uid), { photoURL: dataUrl }, { merge: true });
     statusEl.textContent = "Photo updated.";
     setTimeout(() => statusEl.classList.add("hidden"), 2000);
-    renderProfileScreen();
   } catch (err) {
     statusEl.textContent = "Couldn't process that photo — try a different file.";
   }
@@ -1018,6 +969,7 @@ function render() {
   main.innerHTML = activeTab === "races" ? renderRacesTab(upcoming)
     : activeTab === "history" ? renderHistoryTab(pastRuns())
     : activeTab === "members" ? renderMembersTab()
+    : activeTab === "mypage" ? renderMyPageTab()
     : renderCalendarTab();
   attachContentListeners();
 }
@@ -1275,11 +1227,11 @@ function attachContentListeners() {
   const next = document.getElementById("cal-next");
   if (prev) prev.addEventListener("click", () => { viewMonth = new Date(viewMonth.getFullYear(), viewMonth.getMonth()-1, 1); render(); });
   if (next) next.addEventListener("click", () => { viewMonth = new Date(viewMonth.getFullYear(), viewMonth.getMonth()+1, 1); render(); });
+  attachMyPageListeners();
 }
 
 document.querySelectorAll(".tab-btn").forEach((btn) => {
   btn.addEventListener("click", () => {
-    if (btn.dataset.tab === "mypage") { openProfile(); return; }
     activeTab = btn.dataset.tab;
     render();
   });
