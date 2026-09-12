@@ -29,9 +29,11 @@
     --body: 'Inter', -apple-system, sans-serif;
   }
   * { box-sizing: border-box; }
+  html, body { max-width: 100%; overflow-x: hidden; }
   body {
     margin: 0; color: var(--ink); font-family: var(--body);
     background-color: var(--paper);
+    overflow-wrap: break-word; word-wrap: break-word;
   }
   .wrap { max-width: 640px; margin: 0 auto; padding: 0 16px; }
   .hidden { display: none !important; }
@@ -270,10 +272,10 @@
   <div class="wrap">
     <header class="app-header">
       <div class="header-row">
-        <div>
+        <div style="min-width:0;">
           <div class="brand">Downtown Drinking and Running</div>
         </div>
-        <button class="avatar-btn" id="avatar-btn" title="Sign out">--</button>
+        <button class="avatar-btn" id="avatar-btn" title="Sign out" style="flex-shrink:0;">--</button>
       </div>
 
       <div id="banner-slot"></div>
