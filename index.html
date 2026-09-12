@@ -199,6 +199,12 @@
   .goal-text.done { text-decoration: line-through; color: var(--ink-soft); }
   .goal-target { font-size: 12px; color: var(--ink-soft); margin-top: 2px; }
   .profile-add-form { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+  .delete-account-link {
+    display: block; width: 100%; text-align: center; background: none; border: none;
+    color: var(--stone); font-size: 12px; text-decoration: underline; cursor: pointer;
+    margin-bottom: calc(30px + env(safe-area-inset-bottom));
+  }
+  .delete-account-link:hover { color: var(--orange-deep); }
 
   /* modal */
   .modal-overlay { position: fixed; inset: 0; background: rgba(32,35,43,.5); display: flex; align-items: flex-end; justify-content: center; z-index: 50; }
@@ -279,6 +285,7 @@
         <button class="tab-btn" data-tab="races">Upcoming races <span class="tab-count" id="races-count"></span></button>
         <button class="tab-btn" data-tab="calendar">Calendar</button>
         <button class="tab-btn" data-tab="history">Race history</button>
+        <button class="tab-btn" id="mypage-tab" data-tab="mypage">My page</button>
         <button class="tab-btn" data-tab="members">Members</button>
       </div>
     </header>
@@ -311,7 +318,24 @@
     </div>
     <div id="photo-upload-status" class="hidden"></div>
 
+    <div class="profile-section">
+      <div class="profile-section-title">Contact info</div>
+      <div style="font-size:12.5px; color:var(--ink-soft); margin:-4px 0 10px;">Optional — visible to other members on the Members tab.</div>
+      <form class="profile-add-form" id="contact-info-form">
+        <label class="field-label">Cell phone</label>
+        <input type="tel" id="profile-phone" placeholder="e.g. 555-123-4567" />
+        <label class="field-label" style="margin-top:6px;">Birthday</label>
+        <input type="date" id="profile-birthday" />
+        <button type="submit" class="btn btn-dark" style="width:100%; margin-top:4px;">Save contact info</button>
+      </form>
+    </div>
+
     <div class="profile-stats" id="profile-stats"></div>
+
+    <div class="profile-section">
+      <div class="profile-section-title">Personal records</div>
+      <div id="profile-prs"></div>
+    </div>
 
     <div class="profile-section">
       <div class="profile-section-title">My times for club races</div>
@@ -346,7 +370,8 @@
       </form>
     </div>
 
-    <button class="btn btn-ghost" id="profile-signout" style="width:100%; margin: 20px 0 40px;">Sign out</button>
+    <button class="btn btn-ghost" id="profile-signout" style="width:100%; margin: 20px 0 10px;">Sign out</button>
+    <button class="delete-account-link" id="profile-delete-account">Delete my profile &amp; data</button>
   </div>
 </div>
 
@@ -404,7 +429,8 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js";
 import {
   getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword,
-  signOut, onAuthStateChanged, updateProfile, sendPasswordResetEmail
+  signOut, onAuthStateChanged, updateProfile, sendPasswordResetEmail,
+  deleteUser, EmailAuthProvider, reauthenticateWithCredential
 } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js";
 import {
   getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, setDoc,
@@ -427,6 +453,13 @@ const STATUS = {
   not: { label: "Not for me", cls: "active-not" },
 };
 const QUICK_EMOJIS = ["👍", "😂", "🔥", "👎", "💪"];
+const DISTANCE_CATEGORIES = [
+  { key: "1mile", label: "1 Mile" },
+  { key: "5k", label: "5K" },
+  { key: "10k", label: "10K" },
+  { key: "15k", label: "15K" },
+  { key: "half", label: "Half Marathon" },
+];
 function typeOf(run) { return run.type === "social" ? "social" : "run"; }
 function typeColor(t) { return t === "social" ? "var(--chartreuse)" : "var(--orange)"; }
 
@@ -435,6 +468,7 @@ function sameDay(a,b){ return a.getFullYear()===b.getFullYear() && a.getMonth()=
 function initials(name){ if(!name) return "?"; const p=name.trim().split(/\s+/); return ((p[0]?.[0]||"")+(p[1]?.[0]||"")).toUpperCase() || name[0].toUpperCase(); }
 function fmtTime(t){ if(!t) return ""; const [h,m]=t.split(":").map(Number); const period=h>=12?"PM":"AM"; const h12=h%12===0?12:h%12; return `${h12}:${String(m).padStart(2,"0")} ${period}`; }
 function fmtDateLong(d){ return `${["Sun","Mon","Tue","Wed","Thu","Fri","Sat"][d.getDay()]}, ${MONTHS[d.getMonth()]} ${d.getDate()}`; }
+function fmtBirthdayShort(dateStr){ const d = new Date(dateStr + "T00:00:00"); return `${MONTHS[d.getMonth()].slice(0,3)} ${d.getDate()}`; }
 function daysUntilLabel(dateStr){
   const today=new Date(); const todayMid=new Date(today.getFullYear(),today.getMonth(),today.getDate());
   const target=new Date(dateStr+"T00:00:00"); const diff=Math.round((target-todayMid)/86400000);
@@ -474,7 +508,7 @@ let selectedDate = new Date();
 let unsubscribeRuns = null;
 let unsubscribeMembers = null;
 let unsubscribeProfile = null;
-let myProfile = { personalRuns: [], clubResults: {}, goals: [] };
+let myProfile = { personalRuns: [], clubResults: {}, goals: [], prs: {} };
 let profileScreenOpen = false;
 
 const today = new Date();
@@ -547,9 +581,50 @@ document.getElementById("profile-back").addEventListener("click", () => closePro
 document.getElementById("profile-signout").addEventListener("click", () => {
   if (confirm("Sign out of the club calendar?")) signOut(auth);
 });
+document.getElementById("profile-delete-account").addEventListener("click", async () => {
+  const sure = confirm(
+    "Permanently delete your profile, stats, and account?\n\n" +
+    "This removes you from the Members list and deletes your personal records, goals, and logged runs. " +
+    "Comments and RSVPs you've left on existing events will stay (like most apps, deleting your account doesn't rewrite others' history). " +
+    "This cannot be undone."
+  );
+  if (!sure) return;
+
+  const uid = currentUser.uid;
+  try {
+    await deleteDoc(doc(db, "profiles", uid)).catch(() => {});
+    await deleteDoc(doc(db, "users", uid)).catch(() => {});
+    await deleteUser(auth.currentUser);
+    // onAuthStateChanged fires automatically once the account is gone, returning to sign-in.
+  } catch (err) {
+    if (err.code === "auth/requires-recent-login") {
+      const password = prompt("For security, please re-enter your password to confirm account deletion:");
+      if (!password) return;
+      try {
+        const cred = EmailAuthProvider.credential(currentUser.email, password);
+        await reauthenticateWithCredential(auth.currentUser, cred);
+        await deleteUser(auth.currentUser);
+      } catch (err2) {
+        alert("Couldn't verify your password — your data was removed, but the account sign-in itself may still exist. Try again or contact whoever manages the club's Firebase project.");
+      }
+    } else {
+      alert("Something went wrong deleting your account. Please try again.");
+    }
+  }
+});
 document.getElementById("profile-photo-input").addEventListener("change", (e) => {
   const file = e.target.files[0];
   if (file) uploadProfilePhoto(file);
+});
+document.getElementById("contact-info-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const phone = document.getElementById("profile-phone").value.trim();
+  const birthday = document.getElementById("profile-birthday").value;
+  await setDoc(doc(db, "users", currentUser.uid), { phone, birthday }, { merge: true });
+  const btn = e.target.querySelector("button[type=submit]");
+  const original = btn.textContent;
+  btn.textContent = "Saved ✓";
+  setTimeout(() => { btn.textContent = original; }, 1500);
 });
 document.getElementById("add-personal-run-form").addEventListener("submit", (e) => {
   e.preventDefault();
@@ -593,6 +668,12 @@ function renderProfileScreen() {
     ? `<img src="${me.photoURL}" alt="">`
     : initials(currentUser.name);
 
+  // contact info (only overwrite while the fields aren't mid-edit)
+  const phoneInput = document.getElementById("profile-phone");
+  const birthdayInput = document.getElementById("profile-birthday");
+  if (document.activeElement !== phoneInput) phoneInput.value = (me && me.phone) || "";
+  if (document.activeElement !== birthdayInput) birthdayInput.value = (me && me.birthday) || "";
+
   // stats
   const pastTypedRuns = pastRuns(); // already filters to type "run", past dates
   const attendedRaces = pastTypedRuns.filter((r) => (r.rsvps || {})[currentUser.uid]?.status === "going").length;
@@ -603,6 +684,18 @@ function renderProfileScreen() {
     <div class="stat-box"><div class="stat-num">${pastSocials}</div><div class="stat-label">Socials attended</div></div>
     <div class="stat-box"><div class="stat-num">${myProfile.personalRuns.length}</div><div class="stat-label">Logged runs</div></div>
   `;
+
+  // personal records — fixed set of standard distances, one editable time each
+  document.getElementById("profile-prs").innerHTML = DISTANCE_CATEGORIES.map((cat) => {
+    const existing = myProfile.prs[cat.key] || "";
+    return `<div class="club-result-row" data-pr="${cat.key}">
+      <div class="cr-title">${cat.label}</div>
+      <div class="cr-input-row">
+        <input type="text" class="pr-time-input" placeholder="Your PR, e.g. 22:10" value="${escapeHtml(existing)}" />
+        <button class="cr-save" data-save-pr="${cat.key}">Save</button>
+      </div>
+    </div>`;
+  }).join("");
 
   // club results — past races, with an editable time field each
   const resultsEl = document.getElementById("profile-club-results");
@@ -663,6 +756,14 @@ function renderProfileScreen() {
 }
 
 function attachProfileListeners() {
+  document.querySelectorAll("[data-save-pr]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const key = btn.dataset.savePr;
+      const row = btn.closest(".club-result-row");
+      const time = row.querySelector(".pr-time-input").value.trim();
+      setPR(key, time);
+    });
+  });
   document.querySelectorAll("[data-save-result]").forEach((btn) => {
     btn.addEventListener("click", () => {
       const runId = btn.dataset.saveResult;
@@ -700,6 +801,8 @@ onAuthStateChanged(auth, (user) => {
     currentUser = null;
     appEl.classList.add("hidden");
     authScreen.classList.remove("hidden");
+    document.getElementById("profile-screen").classList.add("hidden");
+    profileScreenOpen = false;
     signinForm.reset(); signupForm.reset();
   }
 });
@@ -736,6 +839,7 @@ function listenToProfile() {
       personalRuns: data.personalRuns || [],
       clubResults: data.clubResults || {},
       goals: data.goals || [],
+      prs: data.prs || {},
     };
     if (profileScreenOpen) renderProfileScreen();
   }, () => { /* profile doc/rules not set up yet — just use empty defaults */ });
@@ -808,6 +912,11 @@ async function deletePersonalRun(id) {
 async function setClubResult(runId, time, notes) {
   await setDoc(doc(db, "profiles", currentUser.uid), {
     clubResults: { ...myProfile.clubResults, [runId]: { time, notes, updatedAt: Date.now() } }
+  }, { merge: true });
+}
+async function setPR(distanceKey, time) {
+  await setDoc(doc(db, "profiles", currentUser.uid), {
+    prs: { ...myProfile.prs, [distanceKey]: time }
   }, { merge: true });
 }
 async function addGoal(text, targetDate) {
@@ -1079,6 +1188,8 @@ function renderMembersTab() {
           <div class="member-info">
             <div class="member-name">${escapeHtml(m.name || "Unnamed")}${isMe ? ` <span class="type-badge type-run">You</span>` : ""}</div>
             ${joined ? `<div class="member-joined">Joined ${fmtDateLong(joined)}</div>` : ""}
+            ${m.phone ? `<div class="member-joined">${escapeHtml(m.phone)}</div>` : ""}
+            ${m.birthday ? `<div class="member-joined">🎂 ${fmtBirthdayShort(m.birthday)}</div>` : ""}
           </div>
         </div>`;
       }).join("")}
@@ -1167,7 +1278,11 @@ function attachContentListeners() {
 }
 
 document.querySelectorAll(".tab-btn").forEach((btn) => {
-  btn.addEventListener("click", () => { activeTab = btn.dataset.tab; render(); });
+  btn.addEventListener("click", () => {
+    if (btn.dataset.tab === "mypage") { openProfile(); return; }
+    activeTab = btn.dataset.tab;
+    render();
+  });
 });
 
 // ---------------------------------------------------------------------
