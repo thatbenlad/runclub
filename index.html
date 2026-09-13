@@ -141,6 +141,8 @@
   .run-meta { display: flex; flex-wrap: wrap; gap: 4px 14px; margin-top: 6px; font-size: 13px; color: var(--ink-soft); }
   .run-notes { font-size: 13px; color: var(--ink-soft); margin-top: 6px; }
   .run-by { font-size: 11px; color: var(--stone); margin-top: 6px; }
+  .signup-link { display: inline-block; font-size: 12.5px; font-weight: 700; color: var(--orange); text-decoration: none; margin-top: 6px; }
+  .signup-link:hover { text-decoration: underline; }
   .run-delete { background: none; border: none; color: var(--stone); cursor: pointer; padding: 4px; }
   .rsvp-row { display: flex; gap: 6px; margin-top: 12px; }
   .rsvp-btn { flex: 1; font-size: 12.5px; font-weight: 600; padding: 8px 6px; border-radius: 8px; border: 1px solid var(--line); background: var(--paper); color: var(--ink-soft); cursor: pointer; }
@@ -159,6 +161,9 @@
   .comment { font-size: 13px; color: var(--ink); line-height: 1.4; display: flex; align-items: flex-start; justify-content: space-between; gap: 6px; }
   .comment-name { font-weight: 700; margin-right: 2px; }
   .comment-delete { flex-shrink: 0; background: none; border: none; color: var(--stone); cursor: pointer; font-size: 15px; line-height: 1; padding: 0 2px; }
+  .comment-edited { font-size: 11px; color: var(--stone); font-style: italic; }
+  .comment-edit-form { display: flex; gap: 6px; }
+  .comment-cancel { padding: 0 10px; border-radius: 8px; border: 1px solid var(--line); background: none; color: var(--ink-soft); font-size: 13px; font-weight: 700; cursor: pointer; white-space: nowrap; }
   .reaction-row { display: flex; gap: 4px; flex-wrap: wrap; }
   .reaction-btn { font-size: 12px; padding: 1px 7px; border-radius: 999px; border: 1px solid var(--line); background: var(--paper); cursor: pointer; line-height: 1.7; }
   .reaction-btn.active { background: var(--chartreuse); border-color: var(--chartreuse); }
@@ -346,9 +351,18 @@
         <label class="field-label">Distance (optional)</label>
         <input type="text" id="run-distance" placeholder="10k, easy pace" />
       </div>
+      <div class="field" id="distance-options-field">
+        <label class="field-label">Multiple distance choices? (optional)</label>
+        <input type="text" id="run-distance-options" placeholder="e.g. 5K, 10K, Half Marathon" />
+        <div style="font-size:11.5px; color:var(--ink-soft); margin-top:4px;">If set, members pick one when they RSVP going. Separate with commas.</div>
+      </div>
       <div class="field">
         <label class="field-label">Notes (optional)</label>
         <textarea id="run-notes" rows="3" placeholder="Bring water, we'll grab coffee after"></textarea>
+      </div>
+      <div class="field">
+        <label class="field-label">Sign-up link (optional)</label>
+        <input type="url" id="run-signup-url" placeholder="https://example.com/race-registration" />
       </div>
       <button type="submit" class="btn btn-dark" id="add-run-submit" style="width:100%; padding:12px 0;">Add to calendar</button>
     </form>
@@ -428,6 +442,15 @@ function escapeHtml(s){ return (s||"").replace(/[&<>"']/g, (c)=>({"&":"&amp;","<
 function safePhotoUrl(url) {
   return typeof url === "string" && /^data:image\/(png|jpeg|jpg|gif|webp);base64,[A-Za-z0-9+/=]+$/.test(url) ? url : null;
 }
+// Same reasoning as safePhotoUrl — event fields are writable by their creator,
+// so only accept real http(s) links before ever using one as an <a href>.
+function safeHttpUrl(url) {
+  if (typeof url !== "string") return null;
+  try {
+    const u = new URL(url);
+    return (u.protocol === "http:" || u.protocol === "https:") ? u.href : null;
+  } catch { return null; }
+}
 function shoeSole(fill) {
   return `
     <path d="M13,24 C13,17 17,12 22,12 C27,12 31,17 31,24 L31,40 C31,47 27,52 22,52 C17,52 13,47 13,40 Z" fill="${fill}"/>
@@ -452,6 +475,7 @@ let currentUser = null;   // { uid, name, email }
 let runs = [];            // live from Firestore
 let members = [];         // live from Firestore "users" collection
 let activeTab = "races";
+let editingCommentId = null;
 let viewMonth = new Date(); viewMonth.setDate(1);
 let selectedDate = new Date();
 let unsubscribeRuns = null;
@@ -871,6 +895,8 @@ async function addRun(data) {
     type: data.type === "social" ? "social" : "run",
     title: data.title, date: data.date, time: data.time,
     location: data.location, distance: data.distance, notes: data.notes,
+    distanceOptions: data.distanceOptions || [],
+    signupUrl: data.signupUrl || "",
     createdBy: currentUser.uid, createdByName: currentUser.name,
     rsvps: {}, createdAt: serverTimestamp(),
   });
@@ -880,15 +906,19 @@ async function updateRun(runId, data) {
     type: data.type === "social" ? "social" : "run",
     title: data.title, date: data.date, time: data.time,
     location: data.location, distance: data.distance, notes: data.notes,
+    distanceOptions: data.distanceOptions || [],
+    signupUrl: data.signupUrl || "",
   });
 }
 async function deleteRun(runId) { await deleteDoc(doc(db, "runs", runId)); }
-async function setRsvp(runId, status) {
+async function setRsvp(runId, status, distance) {
   const run = runs.find((r) => r.id === runId);
   if (!run) return;
   const rsvps = { ...(run.rsvps || {}) };
-  if (rsvps[currentUser.uid]?.status === status) delete rsvps[currentUser.uid];
-  else rsvps[currentUser.uid] = { status, name: currentUser.name };
+  const current = rsvps[currentUser.uid];
+  const sameChoice = current && current.status === status && (current.distance || "") === (distance || "");
+  if (sameChoice) delete rsvps[currentUser.uid];
+  else rsvps[currentUser.uid] = distance ? { status, name: currentUser.name, distance } : { status, name: currentUser.name };
   await updateDoc(doc(db, "runs", runId), { rsvps });
 }
 async function addComment(runId, text) {
@@ -904,6 +934,16 @@ async function deleteComment(runId, commentId) {
   const run = runs.find((r) => r.id === runId);
   if (!run) return;
   const newComments = (run.comments || []).filter((c) => c.id !== commentId);
+  await updateDoc(doc(db, "runs", runId), { comments: newComments });
+}
+async function updateComment(runId, commentId, text) {
+  const trimmed = text.trim();
+  if (!trimmed) return;
+  const run = runs.find((r) => r.id === runId);
+  if (!run) return;
+  const newComments = (run.comments || []).map((c) =>
+    c.id === commentId ? { ...c, text: trimmed, editedAt: Date.now() } : c
+  );
   await updateDoc(doc(db, "runs", runId), { comments: newComments });
 }
 async function toggleReaction(runId, commentId, emoji) {
@@ -1103,11 +1143,27 @@ function renderRunCard(run, opts = {}) {
   const readOnly = !!opts.readOnly;
   const rsvps = run.rsvps || {};
   const mine = rsvps[currentUser.uid]?.status;
-  const going = Object.values(rsvps).filter((r) => r.status === "going").map((r) => r.name);
+  const myDistance = rsvps[currentUser.uid]?.distance || "";
+  const goingEntries = Object.values(rsvps).filter((r) => r.status === "going");
+  const going = goingEntries.map((r) => r.name);
   const interested = Object.values(rsvps).filter((r) => r.status === "interested").map((r) => r.name);
   const t = typeOf(run);
   const isPastSocial = t === "social" && run.date < dateKey(today);
   const goingLabel = isPastSocial ? "Attended" : "Going";
+  const hasDistanceOptions = !readOnly && Array.isArray(run.distanceOptions) && run.distanceOptions.length > 0;
+
+  // group who's going by their chosen distance, when the event offers more than one
+  let goingByDistanceHtml = "";
+  if (hasDistanceOptions) {
+    const groups = {};
+    goingEntries.forEach((r) => {
+      const key = r.distance || "Distance not picked";
+      (groups[key] = groups[key] || []).push(r.name);
+    });
+    goingByDistanceHtml = Object.entries(groups).map(([dist, names]) => `
+      <div class="who-row"><div class="avatar-stack">${names.map(n=>`<div class="avatar-chip" style="background:var(--orange); color:#fff;" title="${escapeHtml(n)}">${initials(n)}</div>`).join("")}</div><span class="who-label">${escapeHtml(dist)} · ${names.map(escapeHtml).join(", ")}</span></div>
+    `).join("");
+  }
 
   return `
     <div class="run-card" data-run-id="${run.id}" style="border-left-color:${typeColor(t)};">
@@ -1120,6 +1176,7 @@ function renderRunCard(run, opts = {}) {
             ${run.distance ? `<span>${escapeHtml(run.distance)}</span>` : ""}
           </div>
           ${run.notes ? `<div class="run-notes">${escapeHtml(run.notes)}</div>` : ""}
+          ${safeHttpUrl(run.signupUrl) ? `<a href="${safeHttpUrl(run.signupUrl)}" target="_blank" rel="noopener noreferrer" class="signup-link">Sign up →</a>` : ""}
           ${run.createdByName ? `<div class="run-by">Added by ${escapeHtml(run.createdByName)}</div>` : ""}
         </div>
         ${(run.createdBy === currentUser.uid || isAdmin()) ? `
@@ -1131,13 +1188,25 @@ function renderRunCard(run, opts = {}) {
       ${readOnly ? `
       <div class="rsvp-row">
         <button class="rsvp-btn ${mine === "going" ? STATUS.going.cls : ""}" data-rsvp="${run.id}" data-status="going">${mine === "going" ? "✓ You were there — tap to undo" : "Mark that you attended"}</button>
+      </div>` : hasDistanceOptions ? `
+      <div style="font-size:12px; color:var(--ink-soft); margin-bottom:6px;">Which distance are you doing?</div>
+      <div class="rsvp-row" style="flex-wrap:wrap;">
+        ${run.distanceOptions.map((dist) => {
+          const active = mine === "going" && myDistance === dist;
+          return `<button class="rsvp-btn ${active ? STATUS.going.cls : ""}" data-rsvp="${run.id}" data-status="going" data-distance="${escapeHtml(dist)}" style="flex:1 1 auto;">${escapeHtml(dist)}</button>`;
+        }).join("")}
+      </div>
+      <div class="rsvp-row">
+        ${["interested","not"].map((key) => `
+          <button class="rsvp-btn ${mine===key ? STATUS[key].cls : ""}" data-rsvp="${run.id}" data-status="${key}">${STATUS[key].label}</button>
+        `).join("")}
       </div>` : `
       <div class="rsvp-row">
         ${Object.entries(STATUS).map(([key,s]) => `
           <button class="rsvp-btn ${mine===key ? s.cls : ""}" data-rsvp="${run.id}" data-status="${key}">${key === "going" ? goingLabel : s.label}</button>
         `).join("")}
       </div>`}
-      ${going.length ? `<div class="who-row"><div class="avatar-stack">${going.map(n=>`<div class="avatar-chip" style="background:var(--orange); color:#fff;" title="${escapeHtml(n)}">${initials(n)}</div>`).join("")}</div><span class="who-label">${readOnly ? "Went" : goingLabel} · ${going.map(escapeHtml).join(", ")}</span></div>` : ""}
+      ${hasDistanceOptions ? goingByDistanceHtml : going.length ? `<div class="who-row"><div class="avatar-stack">${going.map(n=>`<div class="avatar-chip" style="background:var(--orange); color:#fff;" title="${escapeHtml(n)}">${initials(n)}</div>`).join("")}</div><span class="who-label">${readOnly ? "Went" : goingLabel} · ${going.map(escapeHtml).join(", ")}</span></div>` : ""}
       ${!readOnly && interested.length ? `<div class="who-row"><div class="avatar-stack">${interested.map(n=>`<div class="avatar-chip" style="background:var(--chartreuse); color:var(--ink);" title="${escapeHtml(n)}">${initials(n)}</div>`).join("")}</div><span class="who-label">Interested · ${interested.map(escapeHtml).join(", ")}</span></div>` : ""}
       ${readOnly && going.length === 0 ? `<div style="font-size:12.5px; color:var(--stone); margin-top:10px;">No one marked as going</div>` : ""}
       ${renderComments(run)}
@@ -1161,11 +1230,27 @@ function renderComments(run) {
 function renderComment(runId, c) {
   const isMine = c.uid === currentUser.uid;
   const reactions = c.reactions || {};
+
+  if (editingCommentId === c.id) {
+    return `
+      <div class="comment-item">
+        <form class="comment-edit-form" data-edit-comment-form="${runId}:${c.id}">
+          <input type="text" class="comment-input" value="${escapeHtml(c.text)}" maxlength="300" autofocus />
+          <button type="submit" class="comment-send">Save</button>
+          <button type="button" class="comment-cancel" data-cancel-edit-comment="1">Cancel</button>
+        </form>
+      </div>`;
+  }
+
   return `
     <div class="comment-item">
       <div class="comment">
-        <span><span class="comment-name">${escapeHtml(c.name)}</span> ${escapeHtml(c.text)}</span>
-        ${isMine ? `<button class="comment-delete" data-delete-comment="${runId}:${c.id}" title="Delete comment">&times;</button>` : ""}
+        <span><span class="comment-name">${escapeHtml(c.name)}</span> ${escapeHtml(c.text)}${c.editedAt ? ` <span class="comment-edited">(edited)</span>` : ""}</span>
+        ${isMine ? `
+        <span style="display:flex; gap:2px; flex-shrink:0;">
+          <button class="comment-delete" data-edit-comment="${runId}:${c.id}" title="Edit comment">&#9998;</button>
+          <button class="comment-delete" data-delete-comment="${runId}:${c.id}" title="Delete comment">&times;</button>
+        </span>` : ""}
       </div>
       <div class="reaction-row">
         ${QUICK_EMOJIS.map((emoji) => {
@@ -1305,7 +1390,7 @@ function renderCalendarTab() {
 
 function attachContentListeners() {
   document.querySelectorAll("[data-rsvp]").forEach((btn) => {
-    btn.addEventListener("click", () => setRsvp(btn.dataset.rsvp, btn.dataset.status));
+    btn.addEventListener("click", () => setRsvp(btn.dataset.rsvp, btn.dataset.status, btn.dataset.distance));
   });
   document.querySelectorAll("[data-delete]").forEach((btn) => {
     btn.addEventListener("click", () => { if (confirm("Remove this run?")) deleteRun(btn.dataset.delete); });
@@ -1332,6 +1417,28 @@ function attachContentListeners() {
     btn.addEventListener("click", () => {
       const [runId, commentId] = btn.dataset.deleteComment.split(":");
       if (confirm("Delete this comment?")) deleteComment(runId, commentId);
+    });
+  });
+  document.querySelectorAll("[data-edit-comment]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const [, commentId] = btn.dataset.editComment.split(":");
+      editingCommentId = commentId;
+      render();
+    });
+  });
+  document.querySelectorAll("[data-cancel-edit-comment]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      editingCommentId = null;
+      render();
+    });
+  });
+  document.querySelectorAll("[data-edit-comment-form]").forEach((form) => {
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const [runId, commentId] = form.dataset.editCommentForm.split(":");
+      const text = form.querySelector(".comment-input").value;
+      editingCommentId = null;
+      updateComment(runId, commentId, text);
     });
   });
   document.querySelectorAll("[data-react]").forEach((btn) => {
@@ -1363,7 +1470,11 @@ let editingRunId = null;
 function updateDistanceFieldVisibility() {
   const isSocial = selectedRunType === "social";
   document.getElementById("distance-field").classList.toggle("hidden", isSocial);
-  if (isSocial) document.getElementById("run-distance").value = "";
+  document.getElementById("distance-options-field").classList.toggle("hidden", isSocial);
+  if (isSocial) {
+    document.getElementById("run-distance").value = "";
+    document.getElementById("run-distance-options").value = "";
+  }
 }
 document.getElementById("fab-add").addEventListener("click", () => {
   editingRunId = null;
@@ -1400,7 +1511,9 @@ function openEditModal(runId) {
   document.getElementById("run-time").value = run.time || "";
   document.getElementById("run-location").value = run.location || "";
   document.getElementById("run-distance").value = run.distance || "";
+  document.getElementById("run-distance-options").value = (run.distanceOptions || []).join(", ");
   document.getElementById("run-notes").value = run.notes || "";
+  document.getElementById("run-signup-url").value = run.signupUrl || "";
   selectedRunType = typeOf(run);
   document.getElementById("type-btn-run").classList.toggle("active-run", selectedRunType === "run");
   document.getElementById("type-btn-social").classList.toggle("active-social", selectedRunType === "social");
@@ -1410,6 +1523,8 @@ function openEditModal(runId) {
 
 document.getElementById("add-run-form").addEventListener("submit", async (e) => {
   e.preventDefault();
+  const distanceOptions = document.getElementById("run-distance-options").value
+    .split(",").map((s) => s.trim()).filter(Boolean);
   const data = {
     type: selectedRunType,
     title: document.getElementById("run-title").value.trim(),
@@ -1417,7 +1532,9 @@ document.getElementById("add-run-form").addEventListener("submit", async (e) => 
     time: document.getElementById("run-time").value,
     location: document.getElementById("run-location").value.trim(),
     distance: document.getElementById("run-distance").value.trim(),
+    distanceOptions,
     notes: document.getElementById("run-notes").value.trim(),
+    signupUrl: document.getElementById("run-signup-url").value.trim(),
   };
   if (!data.title || !data.date) return;
   if (editingRunId) {
