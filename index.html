@@ -171,6 +171,7 @@
   .member-list { display: flex; flex-direction: column; gap: 10px; }
   .member-row { display: flex; align-items: center; gap: 12px; background: var(--paper-raised); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; }
   .member-row .avatar-chip { width: 58px; height: 58px; font-size: 20px; flex-shrink: 0; border-width: 0; }
+  .member-info { flex: 1; min-width: 0; }
   .member-name { font-size: 14.5px; font-weight: 700; }
   .member-joined { font-size: 12px; color: var(--ink-soft); margin-top: 2px; }
 
@@ -312,7 +313,7 @@
 <div id="add-modal-overlay" class="modal-overlay hidden">
   <div class="modal-sheet">
     <div class="modal-head">
-      <div class="modal-title">Add an event</div>
+      <div class="modal-title" id="add-modal-title">Add an event</div>
       <button class="modal-close" id="close-add-modal">&times;</button>
     </div>
     <form id="add-run-form">
@@ -349,7 +350,7 @@
         <label class="field-label">Notes (optional)</label>
         <textarea id="run-notes" rows="3" placeholder="Bring water, we'll grab coffee after"></textarea>
       </div>
-      <button type="submit" class="btn btn-dark" style="width:100%; padding:12px 0;">Add to calendar</button>
+      <button type="submit" class="btn btn-dark" id="add-run-submit" style="width:100%; padding:12px 0;">Add to calendar</button>
     </form>
   </div>
 </div>
@@ -386,6 +387,13 @@ const STATUS = {
   not: { label: "Not for me", cls: "active-not" },
 };
 const QUICK_EMOJIS = ["👍", "😂", "🔥", "👎", "💪"];
+// Admins can remove other members' listing/data. This list must match the
+// admin check in your Firestore security rules — the client-side check below
+// only controls whether the button shows up; the rules are what actually
+// enforce it, so editing this array alone does NOT grant real permissions.
+const ADMIN_UIDS = ["nYND5BlVBMOoMdX6BoxGmltd2vu2"];
+function isAdmin() { return ADMIN_UIDS.includes(currentUser.uid); }
+
 const DISTANCE_CATEGORIES = [
   { key: "1mile", label: "1 Mile" },
   { key: "5k", label: "5K" },
@@ -413,6 +421,13 @@ function buildMonthGrid(year, month){
   const days=[]; for(let i=0;i<42;i++){ const d=new Date(start); d.setDate(start.getDate()+i); days.push(d); } return days;
 }
 function escapeHtml(s){ return (s||"").replace(/[&<>"']/g, (c)=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+// Photo fields are freely writable by each user to their own doc — Firestore rules
+// control *who* can write, not *what*. Validate the shape before ever using a
+// stored value as an <img src>, so a crafted string can't break out of the
+// attribute (stored XSS) even though it passed the write-permission check.
+function safePhotoUrl(url) {
+  return typeof url === "string" && /^data:image\/(png|jpeg|jpg|gif|webp);base64,[A-Za-z0-9+/=]+$/.test(url) ? url : null;
+}
 function shoeSole(fill) {
   return `
     <path d="M13,24 C13,17 17,12 22,12 C27,12 31,17 31,24 L31,40 C31,47 27,52 22,52 C17,52 13,47 13,40 Z" fill="${fill}"/>
@@ -514,8 +529,9 @@ document.getElementById("avatar-btn").addEventListener("click", () => {
 
 function renderMyPageTab() {
   const me = members.find((m) => m.uid === currentUser.uid);
-  const photoInner = me && me.photoURL
-    ? `<img src="${me.photoURL}" alt="">`
+  const safeOwnPhoto = me && safePhotoUrl(me.photoURL);
+  const photoInner = safeOwnPhoto
+    ? `<img src="${safeOwnPhoto}" alt="">`
     : initials(currentUser.name);
 
   const pastTypedRuns = pastRuns(); // already filters to type "run", past dates
@@ -605,7 +621,7 @@ function renderMyPageTab() {
         <label class="field-label">Cell phone</label>
         <input type="tel" id="profile-phone" placeholder="e.g. 555-123-4567" value="${escapeHtml((me && me.phone) || "")}" />
         <label class="field-label" style="margin-top:6px;">Birthday</label>
-        <input type="date" id="profile-birthday" value="${(me && me.birthday) || ""}" />
+        <input type="date" id="profile-birthday" value="${escapeHtml((me && me.birthday) || "")}" />
         <button type="submit" class="btn btn-dark" style="width:100%; margin-top:4px;">Save contact info</button>
       </form>
     </div>
@@ -859,6 +875,13 @@ async function addRun(data) {
     rsvps: {}, createdAt: serverTimestamp(),
   });
 }
+async function updateRun(runId, data) {
+  await updateDoc(doc(db, "runs", runId), {
+    type: data.type === "social" ? "social" : "run",
+    title: data.title, date: data.date, time: data.time,
+    location: data.location, distance: data.distance, notes: data.notes,
+  });
+}
 async function deleteRun(runId) { await deleteDoc(doc(db, "runs", runId)); }
 async function setRsvp(runId, status) {
   const run = runs.find((r) => r.id === runId);
@@ -934,6 +957,21 @@ async function updateCustomPR(id, time) {
 async function deleteCustomPR(id) {
   const next = myProfile.customPRs.filter((p) => p.id !== id);
   await setDoc(doc(db, "profiles", currentUser.uid), { customPRs: next }, { merge: true });
+}
+async function removeMember(uid, name) {
+  const sure = confirm(
+    `Remove ${name} from the club?\n\n` +
+    "This deletes their entry from the Members list and their private profile data (stats, PRs, goals). " +
+    "It does NOT delete their login — if they sign in again, they'll reappear as a fresh member. " +
+    "Their past comments and RSVPs stay in place, same as any account deletion."
+  );
+  if (!sure) return;
+  try {
+    await deleteDoc(doc(db, "users", uid));
+    await deleteDoc(doc(db, "profiles", uid)).catch(() => {});
+  } catch (err) {
+    alert("Couldn't remove that member. Make sure the admin rule is published in Firestore.");
+  }
 }
 async function addGoal(text, targetDate) {
   const entry = {
@@ -1084,7 +1122,11 @@ function renderRunCard(run, opts = {}) {
           ${run.notes ? `<div class="run-notes">${escapeHtml(run.notes)}</div>` : ""}
           ${run.createdByName ? `<div class="run-by">Added by ${escapeHtml(run.createdByName)}</div>` : ""}
         </div>
-        ${run.createdBy === currentUser.uid ? `<button class="run-delete" data-delete="${run.id}">&times;</button>` : ""}
+        ${(run.createdBy === currentUser.uid || isAdmin()) ? `
+        <div style="display:flex; gap:2px; flex-shrink:0;">
+          <button class="run-delete" data-edit="${run.id}" title="Edit event">&#9998;</button>
+          <button class="run-delete" data-delete="${run.id}">&times;</button>
+        </div>` : ""}
       </div>
       ${readOnly ? `
       <div class="rsvp-row">
@@ -1192,14 +1234,16 @@ function renderMembersTab() {
       <div class="empty-body">Once people sign up, they'll show up here.</div>
     </div>`;
   }
+  const amAdmin = isAdmin();
   return `
     <div class="member-count">${members.length} member${members.length === 1 ? "" : "s"}</div>
     <div class="member-list">
       ${members.map((m) => {
         const isMe = m.uid === currentUser.uid;
         const joined = m.joinedAt && m.joinedAt.toDate ? m.joinedAt.toDate() : null;
-        const avatar = m.photoURL
-          ? `<div class="avatar-chip" style="margin-left:0; overflow:hidden; padding:0;"><img src="${m.photoURL}" alt="" style="width:100%; height:100%; object-fit:cover;"></div>`
+        const safeMemberPhoto = safePhotoUrl(m.photoURL);
+        const avatar = safeMemberPhoto
+          ? `<div class="avatar-chip" style="margin-left:0; overflow:hidden; padding:0;"><img src="${safeMemberPhoto}" alt="" style="width:100%; height:100%; object-fit:cover;"></div>`
           : `<div class="avatar-chip" style="background:var(--orange); color:#fff; margin-left:0;">${initials(m.name || "?")}</div>`;
         return `<div class="member-row">
           ${avatar}
@@ -1209,6 +1253,7 @@ function renderMembersTab() {
             ${m.phone ? `<div class="member-joined">${escapeHtml(m.phone)}</div>` : ""}
             ${m.birthday ? `<div class="member-joined">🎂 ${fmtBirthdayShort(m.birthday)}</div>` : ""}
           </div>
+          ${amAdmin && !isMe ? `<button class="run-delete" data-remove-member="${m.uid}" data-remove-member-name="${escapeHtml(m.name || "this member")}" title="Remove member">&times;</button>` : ""}
         </div>`;
       }).join("")}
     </div>`;
@@ -1265,6 +1310,12 @@ function attachContentListeners() {
   document.querySelectorAll("[data-delete]").forEach((btn) => {
     btn.addEventListener("click", () => { if (confirm("Remove this run?")) deleteRun(btn.dataset.delete); });
   });
+  document.querySelectorAll("[data-edit]").forEach((btn) => {
+    btn.addEventListener("click", () => openEditModal(btn.dataset.edit));
+  });
+  document.querySelectorAll("[data-remove-member]").forEach((btn) => {
+    btn.addEventListener("click", () => removeMember(btn.dataset.removeMember, btn.dataset.removeMemberName));
+  });
   document.querySelectorAll("[data-date]").forEach((btn) => {
     btn.addEventListener("click", () => { selectedDate = new Date(btn.dataset.date + "T00:00:00"); render(); });
   });
@@ -1308,12 +1359,17 @@ document.querySelectorAll(".tab-btn").forEach((btn) => {
 // ---------------------------------------------------------------------
 const addModal = document.getElementById("add-modal-overlay");
 let selectedRunType = "run";
+let editingRunId = null;
 function updateDistanceFieldVisibility() {
   const isSocial = selectedRunType === "social";
   document.getElementById("distance-field").classList.toggle("hidden", isSocial);
   if (isSocial) document.getElementById("run-distance").value = "";
 }
 document.getElementById("fab-add").addEventListener("click", () => {
+  editingRunId = null;
+  document.getElementById("add-run-form").reset();
+  document.getElementById("add-modal-title").textContent = "Add an event";
+  document.getElementById("add-run-submit").textContent = "Add to calendar";
   document.getElementById("run-date").value = dateKey(selectedDate);
   selectedRunType = "run";
   document.getElementById("type-btn-run").classList.add("active-run");
@@ -1333,6 +1389,25 @@ document.querySelectorAll(".type-toggle-btn").forEach((btn) => {
   });
 });
 
+function openEditModal(runId) {
+  const run = runs.find((r) => r.id === runId);
+  if (!run) return;
+  editingRunId = runId;
+  document.getElementById("add-modal-title").textContent = "Edit event";
+  document.getElementById("add-run-submit").textContent = "Save changes";
+  document.getElementById("run-title").value = run.title || "";
+  document.getElementById("run-date").value = run.date || "";
+  document.getElementById("run-time").value = run.time || "";
+  document.getElementById("run-location").value = run.location || "";
+  document.getElementById("run-distance").value = run.distance || "";
+  document.getElementById("run-notes").value = run.notes || "";
+  selectedRunType = typeOf(run);
+  document.getElementById("type-btn-run").classList.toggle("active-run", selectedRunType === "run");
+  document.getElementById("type-btn-social").classList.toggle("active-social", selectedRunType === "social");
+  updateDistanceFieldVisibility();
+  addModal.classList.remove("hidden");
+}
+
 document.getElementById("add-run-form").addEventListener("submit", async (e) => {
   e.preventDefault();
   const data = {
@@ -1345,7 +1420,12 @@ document.getElementById("add-run-form").addEventListener("submit", async (e) => 
     notes: document.getElementById("run-notes").value.trim(),
   };
   if (!data.title || !data.date) return;
-  await addRun(data);
+  if (editingRunId) {
+    await updateRun(editingRunId, data);
+  } else {
+    await addRun(data);
+  }
+  editingRunId = null;
   e.target.reset();
   addModal.classList.add("hidden");
   selectedDate = new Date(data.date + "T00:00:00");
