@@ -1176,7 +1176,7 @@ function renderRunCard(run, opts = {}) {
             ${run.distance ? `<span>${escapeHtml(run.distance)}</span>` : ""}
           </div>
           ${run.notes ? `<div class="run-notes">${escapeHtml(run.notes)}</div>` : ""}
-          ${safeHttpUrl(run.signupUrl) ? `<a href="${safeHttpUrl(run.signupUrl)}" target="_blank" rel="noopener noreferrer" class="signup-link">Sign up →</a>` : ""}
+          ${safeHttpUrl(run.signupUrl) ? `<a href="${safeHttpUrl(run.signupUrl)}" target="_blank" rel="noopener noreferrer" class="signup-link">Sign up here →</a>` : ""}
           ${run.createdByName ? `<div class="run-by">Added by ${escapeHtml(run.createdByName)}</div>` : ""}
         </div>
         ${(run.createdBy === currentUser.uid || isAdmin()) ? `
