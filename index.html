@@ -170,7 +170,7 @@
   .member-count { font-size: 13px; color: var(--ink-soft); margin-bottom: 14px; }
   .member-list { display: flex; flex-direction: column; gap: 10px; }
   .member-row { display: flex; align-items: center; gap: 12px; background: var(--paper-raised); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; }
-  .member-row .avatar-chip { width: 36px; height: 36px; font-size: 13px; flex-shrink: 0; }
+  .member-row .avatar-chip { width: 58px; height: 58px; font-size: 20px; flex-shrink: 0; border-width: 0; }
   .member-name { font-size: 14.5px; font-weight: 700; }
   .member-joined { font-size: 12px; color: var(--ink-soft); margin-top: 2px; }
 
@@ -392,6 +392,7 @@ const DISTANCE_CATEGORIES = [
   { key: "10k", label: "10K" },
   { key: "15k", label: "15K" },
   { key: "half", label: "Half Marathon" },
+  { key: "marathon", label: "Marathon" },
 ];
 function typeOf(run) { return run.type === "social" ? "social" : "run"; }
 function typeColor(t) { return t === "social" ? "var(--chartreuse)" : "var(--orange)"; }
@@ -441,7 +442,7 @@ let selectedDate = new Date();
 let unsubscribeRuns = null;
 let unsubscribeMembers = null;
 let unsubscribeProfile = null;
-let myProfile = { personalRuns: [], clubResults: {}, goals: [], prs: {} };
+let myProfile = { personalRuns: [], clubResults: {}, goals: [], prs: {}, customPRs: [] };
 
 const today = new Date();
 
@@ -532,6 +533,15 @@ function renderMyPageTab() {
     </div>`;
   }).join("");
 
+  const customPrsHtml = myProfile.customPRs.map((p) => `
+    <div class="club-result-row" data-custom-pr="${p.id}">
+      <div class="cr-title">${escapeHtml(p.label)} <button class="pli-delete" style="float:right;" data-delete-custom-pr="${p.id}">&times;</button></div>
+      <div class="cr-input-row">
+        <input type="text" class="custom-pr-time-input" placeholder="Your PR" value="${escapeHtml(p.time || "")}" />
+        <button class="cr-save" data-save-custom-pr="${p.id}">Save</button>
+      </div>
+    </div>`).join("");
+
   const clubResultsHtml = pastTypedRuns.length === 0
     ? `<div class="profile-list-empty">No past races yet.</div>`
     : pastTypedRuns.map((r) => {
@@ -609,6 +619,12 @@ function renderMyPageTab() {
     <div class="profile-section">
       <div class="profile-section-title">Personal records</div>
       <div>${prsHtml}</div>
+      ${customPrsHtml ? `<div style="margin-top:8px;">${customPrsHtml}</div>` : ""}
+      <form class="profile-add-form" id="add-custom-pr-form">
+        <input type="text" id="custom-pr-label" placeholder="Custom distance/event, e.g. Turkey Trot 4-Miler" required />
+        <input type="text" id="custom-pr-time" placeholder="Your PR, e.g. 28:45" />
+        <button type="submit" class="btn btn-dark" style="width:100%;">Add custom record</button>
+      </form>
     </div>
 
     <div class="profile-section">
@@ -730,6 +746,28 @@ function attachMyPageListeners() {
       setPR(key, time);
     });
   });
+  const addCustomPrForm = document.getElementById("add-custom-pr-form");
+  if (addCustomPrForm) {
+    addCustomPrForm.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const label = document.getElementById("custom-pr-label").value.trim();
+      const time = document.getElementById("custom-pr-time").value.trim();
+      if (!label) return;
+      addCustomPR(label, time);
+      e.target.reset();
+    });
+  }
+  document.querySelectorAll("[data-save-custom-pr]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const id = btn.dataset.saveCustomPr;
+      const row = btn.closest(".club-result-row");
+      const time = row.querySelector(".custom-pr-time-input").value.trim();
+      updateCustomPR(id, time);
+    });
+  });
+  document.querySelectorAll("[data-delete-custom-pr]").forEach((btn) => {
+    btn.addEventListener("click", () => { if (confirm("Delete this personal record?")) deleteCustomPR(btn.dataset.deleteCustomPr); });
+  });
   document.querySelectorAll("[data-save-result]").forEach((btn) => {
     btn.addEventListener("click", () => {
       const runId = btn.dataset.saveResult;
@@ -805,6 +843,7 @@ function listenToProfile() {
       clubResults: data.clubResults || {},
       goals: data.goals || [],
       prs: data.prs || {},
+      customPRs: data.customPRs || [],
     };
     if (activeTab === "mypage") render();
   }, () => { /* profile doc/rules not set up yet — just use empty defaults */ });
@@ -883,6 +922,18 @@ async function setPR(distanceKey, time) {
   await setDoc(doc(db, "profiles", currentUser.uid), {
     prs: { ...myProfile.prs, [distanceKey]: time }
   }, { merge: true });
+}
+async function addCustomPR(label, time) {
+  const entry = { id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, label, time };
+  await setDoc(doc(db, "profiles", currentUser.uid), { customPRs: arrayUnion(entry) }, { merge: true });
+}
+async function updateCustomPR(id, time) {
+  const next = myProfile.customPRs.map((p) => p.id === id ? { ...p, time } : p);
+  await setDoc(doc(db, "profiles", currentUser.uid), { customPRs: next }, { merge: true });
+}
+async function deleteCustomPR(id) {
+  const next = myProfile.customPRs.filter((p) => p.id !== id);
+  await setDoc(doc(db, "profiles", currentUser.uid), { customPRs: next }, { merge: true });
 }
 async function addGoal(text, targetDate) {
   const entry = {
