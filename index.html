@@ -1017,6 +1017,8 @@ function renderRunCard(run, opts = {}) {
   const going = Object.values(rsvps).filter((r) => r.status === "going").map((r) => r.name);
   const interested = Object.values(rsvps).filter((r) => r.status === "interested").map((r) => r.name);
   const t = typeOf(run);
+  const isPastSocial = t === "social" && run.date < dateKey(today);
+  const goingLabel = isPastSocial ? "Attended" : "Going";
 
   return `
     <div class="run-card" data-run-id="${run.id}" style="border-left-color:${typeColor(t)};">
@@ -1039,10 +1041,10 @@ function renderRunCard(run, opts = {}) {
       </div>` : `
       <div class="rsvp-row">
         ${Object.entries(STATUS).map(([key,s]) => `
-          <button class="rsvp-btn ${mine===key ? s.cls : ""}" data-rsvp="${run.id}" data-status="${key}">${s.label}</button>
+          <button class="rsvp-btn ${mine===key ? s.cls : ""}" data-rsvp="${run.id}" data-status="${key}">${key === "going" ? goingLabel : s.label}</button>
         `).join("")}
       </div>`}
-      ${going.length ? `<div class="who-row"><div class="avatar-stack">${going.map(n=>`<div class="avatar-chip" style="background:var(--orange); color:#fff;" title="${escapeHtml(n)}">${initials(n)}</div>`).join("")}</div><span class="who-label">${readOnly ? "Went" : "Going"} · ${going.map(escapeHtml).join(", ")}</span></div>` : ""}
+      ${going.length ? `<div class="who-row"><div class="avatar-stack">${going.map(n=>`<div class="avatar-chip" style="background:var(--orange); color:#fff;" title="${escapeHtml(n)}">${initials(n)}</div>`).join("")}</div><span class="who-label">${readOnly ? "Went" : goingLabel} · ${going.map(escapeHtml).join(", ")}</span></div>` : ""}
       ${!readOnly && interested.length ? `<div class="who-row"><div class="avatar-stack">${interested.map(n=>`<div class="avatar-chip" style="background:var(--chartreuse); color:var(--ink);" title="${escapeHtml(n)}">${initials(n)}</div>`).join("")}</div><span class="who-label">Interested · ${interested.map(escapeHtml).join(", ")}</span></div>` : ""}
       ${readOnly && going.length === 0 ? `<div style="font-size:12.5px; color:var(--stone); margin-top:10px;">No one marked as going</div>` : ""}
       ${renderComments(run)}
