@@ -639,14 +639,16 @@ function renderMyPageTab() {
     <div id="photo-upload-status" class="hidden"></div>
 
     <div class="profile-section">
-      <div class="profile-section-title">Contact info</div>
-      <div style="font-size:12.5px; color:var(--ink-soft); margin:-4px 0 10px;">Optional — visible to other members on the Members tab.</div>
+      <div class="profile-section-title">Name &amp; contact info</div>
+      <div style="font-size:12.5px; color:var(--ink-soft); margin:-4px 0 10px;">Your name and photo show on the Members tab; phone and birthday are optional.</div>
       <form class="profile-add-form" id="contact-info-form">
-        <label class="field-label">Cell phone</label>
+        <label class="field-label">Display name</label>
+        <input type="text" id="profile-display-name" value="${escapeHtml(currentUser.name)}" required />
+        <label class="field-label" style="margin-top:6px;">Cell phone</label>
         <input type="tel" id="profile-phone" placeholder="e.g. 555-123-4567" value="${escapeHtml((me && me.phone) || "")}" />
         <label class="field-label" style="margin-top:6px;">Birthday</label>
         <input type="date" id="profile-birthday" value="${escapeHtml((me && me.birthday) || "")}" />
-        <button type="submit" class="btn btn-dark" style="width:100%; margin-top:4px;">Save contact info</button>
+        <button type="submit" class="btn btn-dark" style="width:100%; margin-top:4px;">Save changes</button>
       </form>
     </div>
 
@@ -749,9 +751,16 @@ function attachMyPageListeners() {
   });
   document.getElementById("contact-info-form").addEventListener("submit", async (e) => {
     e.preventDefault();
+    const name = document.getElementById("profile-display-name").value.trim();
     const phone = document.getElementById("profile-phone").value.trim();
     const birthday = document.getElementById("profile-birthday").value;
-    await setDoc(doc(db, "users", currentUser.uid), { phone, birthday }, { merge: true });
+    if (!name) return;
+    if (name !== currentUser.name) {
+      await updateProfile(auth.currentUser, { displayName: name });
+      currentUser.name = name;
+      document.getElementById("avatar-btn").textContent = name.trim().split(/\s+/)[0];
+    }
+    await setDoc(doc(db, "users", currentUser.uid), { name, phone, birthday }, { merge: true });
     const btn = e.target.querySelector("button[type=submit]");
     const original = btn.textContent;
     btn.textContent = "Saved ✓";
